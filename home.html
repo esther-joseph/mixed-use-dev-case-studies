@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio — Mixed-Use Developments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Fraunces:ital,wght@0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#F7E8DB;
+      --bg2:#FAEFE3;
+      --card:#FFFFFF;
+      --ink:#1B2452;
+      --ink2:#4A527A;
+      --ink3:#8A8FA8;
+      --accent:#2B3373;
+      --border:#E4D5C2;
+      --font:'Space Grotesk',sans-serif;
+      --mono:'Space Mono',monospace;
+      --serif:'Fraunces',serif;
+    }
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--ink);font-family:var(--font);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+    button{font-family:inherit;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+
+const { useState, useMemo, useEffect, useRef } = React;
+
+// ─── PROJECTS DATA ────────────────────────────────────────────────────────
+const PROJECTS = [
+{ id: 'dallas', name: 'Dallas Mixed-Use', city: 'Dallas', state: 'TX', region: 'DFW', type: 'Mixed-Use Development',
+  address: '1800 Main St, Dallas, TX 75201', lat: 32.7808, lng: -96.7970,
+  acres: 12, investment: '$2.1B', investmentNum: 2.1, affordable: '15%', affordableNum: 15, affordableUnits: 720, totalUnits: 4800,
+  sustainScore: 82, leedLevel: 'Gold', treesPlanted: 1200, solarMW: 4.5, waterReduction: 38,
+  mix: { residential: 48, office: 22, retail: 18, hospitality: 8, civic: 4 },
+  verdict: 'Strong', tags: ['Mixed-Use', 'Affordability', 'Transit', 'DFW'],
+  href: 'index.html', accent: '#479db3', thumb: '#B5D4DC' },
+{ id: 'assembly-park', name: 'Assembly Park', city: 'Plano', state: 'TX', region: 'DFW', type: 'Urban Park District',
+  address: '6200 K Ave, Plano, TX 75074', lat: 33.0198, lng: -96.6989,
+  acres: 10, investment: '$1.3B', investmentNum: 1.3, affordable: '15%', affordableNum: 15, affordableUnits: 420, totalUnits: 2800,
+  sustainScore: 88, leedLevel: 'Platinum', treesPlanted: 2400, solarMW: 3.2, waterReduction: 46,
+  mix: { residential: 42, office: 14, retail: 16, hospitality: 6, civic: 22 },
+  verdict: 'Exemplary', tags: ['Park District', 'Affordability', 'Transit', 'DFW'],
+  href: 'assembly-park.html', accent: '#00A693', thumb: '#B4D4C8' },
+{ id: 'frisco', name: 'Frisco Innovation Hub', city: 'Frisco', state: 'TX', region: 'DFW', type: 'Tech + Residential District',
+  address: '3255 Preston Rd, Frisco, TX 75034', lat: 33.1507, lng: -96.8236,
+  acres: 7, investment: '$980M', investmentNum: 0.98, affordable: '12%', affordableNum: 12, affordableUnits: 264, totalUnits: 2200,
+  sustainScore: 74, leedLevel: 'Silver', treesPlanted: 680, solarMW: 5.8, waterReduction: 28,
+  mix: { residential: 38, office: 36, retail: 14, hospitality: 8, civic: 4 },
+  verdict: 'Moderate', tags: ['Tech', 'Innovation', 'DFW', 'Affordability'],
+  href: 'frisco-project.html', accent: '#2E7D7D', thumb: '#B8D4D0' },
+{ id: 'plano', name: 'Plano Legacy TOD', city: 'Plano', state: 'TX', region: 'DFW', type: 'Transit Village',
+  address: '7600 Legacy Dr, Plano, TX 75024', lat: 33.0776, lng: -96.8192,
+  acres: 10, investment: '$1.3B', investmentNum: 1.3, affordable: '18%', affordableNum: 18, affordableUnits: 612, totalUnits: 3400,
+  sustainScore: 80, leedLevel: 'Gold', treesPlanted: 1450, solarMW: 3.8, waterReduction: 34,
+  mix: { residential: 52, office: 20, retail: 18, hospitality: 6, civic: 4 },
+  verdict: 'Strong', tags: ['Transit', 'TOD', 'DFW', 'Affordability'],
+  href: 'plano-project.html', accent: '#5A3E7A', thumb: '#C8C0D8' },
+{ id: 'fort-worth', name: 'Fort Worth Rail Yard', city: 'Fort Worth', state: 'TX', region: 'DFW', type: 'Industrial Adaptive Reuse',
+  address: '201 S Calhoun St, Fort Worth, TX 76102', lat: 32.7481, lng: -97.3306,
+  acres: 18, investment: '$1.1B', investmentNum: 1.1, affordable: '18%', affordableNum: 18, affordableUnits: 486, totalUnits: 2700,
+  sustainScore: 84, leedLevel: 'Gold', treesPlanted: 1800, solarMW: 2.4, waterReduction: 42,
+  mix: { residential: 34, office: 18, retail: 20, hospitality: 10, civic: 18 },
+  verdict: 'Strong', tags: ['Adaptive Reuse', 'Historic', 'DFW', 'Arts'],
+  href: 'fort-worth-project.html', accent: '#A0522D', thumb: '#D4C8BC' },
+{ id: 'houston', name: 'Houston TOD', city: 'Houston', state: 'TX', region: 'Gulf Coast', type: 'Transit-Oriented Development',
+  address: '2000 Bagby St, Houston, TX 77002', lat: 29.7589, lng: -95.3677,
+  acres: 16, investment: '$1.8B', investmentNum: 1.8, affordable: '20%', affordableNum: 20, affordableUnits: 860, totalUnits: 4300,
+  sustainScore: 79, leedLevel: 'Gold', treesPlanted: 1620, solarMW: 4.2, waterReduction: 36,
+  mix: { residential: 50, office: 18, retail: 16, hospitality: 8, civic: 8 },
+  verdict: 'Strong', tags: ['Transit', 'TOD', 'Gulf Coast', 'Affordability'],
+  href: 'houston-project.html', accent: '#4A7A3D', thumb: '#BED4B0' },
+{ id: 'austin', name: 'Austin Waterfront', city: 'Austin', state: 'TX', region: 'Central', type: 'Waterfront Mixed-Use',
+  address: '1100 Lady Bird Lake Dr, Austin, TX 78701', lat: 30.2640, lng: -97.7474,
+  acres: 14, investment: '$1.6B', investmentNum: 1.6, affordable: '15%', affordableNum: 15, affordableUnits: 555, totalUnits: 3700,
+  sustainScore: 86, leedLevel: 'Platinum', treesPlanted: 2100, solarMW: 3.6, waterReduction: 44,
+  mix: { residential: 46, office: 18, retail: 18, hospitality: 12, civic: 6 },
+  verdict: 'Exemplary', tags: ['Waterfront', 'Mixed-Use', 'Central', 'Arts'],
+  href: 'austin-project.html', accent: '#3D5A7A', thumb: '#BAC8D6' },
+{ id: 'san-antonio', name: 'San Antonio Arts', city: 'San Antonio', state: 'TX', region: 'Central', type: 'Arts & Culture District',
+  address: '300 Alamo Plaza, San Antonio, TX 78205', lat: 29.4252, lng: -98.4946,
+  acres: 11, investment: '$890M', investmentNum: 0.89, affordable: '22%', affordableNum: 22, affordableUnits: 550, totalUnits: 2500,
+  sustainScore: 81, leedLevel: 'Gold', treesPlanted: 1350, solarMW: 2.1, waterReduction: 38,
+  mix: { residential: 40, office: 14, retail: 18, hospitality: 10, civic: 18 },
+  verdict: 'Strong', tags: ['Arts', 'Cultural', 'Central', 'Affordability'],
+  href: 'san-antonio-project.html', accent: '#7A4A6B', thumb: '#D0C0BC' },
+{ id: 'el-paso', name: 'El Paso Borderlands', city: 'El Paso', state: 'TX', region: 'West', type: 'Bi-National Cultural Mixed-Use',
+  address: '100 W San Antonio Ave, El Paso, TX 79901', lat: 31.7619, lng: -106.4850,
+  acres: 14, investment: '$750M', investmentNum: 0.75, affordable: '22%', affordableNum: 22, affordableUnits: 506, totalUnits: 2300,
+  sustainScore: 77, leedLevel: 'Silver', treesPlanted: 960, solarMW: 3.1, waterReduction: 32,
+  mix: { residential: 44, office: 12, retail: 18, hospitality: 10, civic: 16 },
+  verdict: 'Strong', tags: ['Cultural', 'Bi-National', 'West', 'Affordability'],
+  href: 'el-paso-project.html', accent: '#8B6914', thumb: '#D4C8A8' }];
+
+
+// Texas bounding box
+const TX_BOUNDS = { minLat: 25.8, maxLat: 36.5, minLng: -106.7, maxLng: -93.5 };
+function projectToXY(lat, lng, w, h) {
+  const x = (lng - TX_BOUNDS.minLng) / (TX_BOUNDS.maxLng - TX_BOUNDS.minLng) * w;
+  const y = h - (lat - TX_BOUNDS.minLat) / (TX_BOUNDS.maxLat - TX_BOUNDS.minLat) * h;
+  return { x, y };
+}
+
+// Filter categories
+const FILTERS = {
+  State: ['TX'],
+  City: ['Dallas', 'Plano', 'Frisco', 'Fort Worth', 'Houston', 'Austin', 'San Antonio', 'El Paso'],
+  Region: ['DFW', 'Gulf Coast', 'Central', 'West'],
+  Tag: ['Affordability', 'Transit', 'TOD', 'Arts', 'Cultural', 'Mixed-Use', 'Adaptive Reuse', 'Historic', 'Tech', 'Innovation', 'Park District', 'Waterfront', 'Bi-National']
+};
+
+// ─── NAV ──────────────────────────────────────────────────────────────────
+function Nav() {
+  return (
+    <nav style={{ padding: '28px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <a href="home.html" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+        <svg width="36" height="36" viewBox="0 0 36 36">
+          <g stroke="var(--accent)" strokeWidth="2" fill="none" strokeLinecap="round">
+            <line x1="18" y1="4" x2="18" y2="32" />
+            <line x1="4" y1="18" x2="32" y2="18" />
+            <line x1="8" y1="8" x2="28" y2="28" />
+            <line x1="28" y1="8" x2="8" y2="28" />
+          </g>
+        </svg>
+        <div>
+          <div style={{ fontFamily: 'var(--serif)', fontSize: 18, fontWeight: 500, color: 'var(--ink)', lineHeight: 1 }}>Mixed-Use Development</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>Urban Portfolio</div>
+        </div>
+      </a>
+      <div style={{ display: 'flex', gap: 36 }}>
+        <a href="#case-studies" style={{ fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>Case Studies</a>
+        <a href="#map" style={{ fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>Map</a>
+        <a href="#compare" style={{ fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>Compare</a>
+        <a href="#about" style={{ fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>About</a>
+        <a href="mailto:info@assemblyurban.com" style={{ fontSize: 14, color: 'var(--ink)', textDecoration: 'none' }}>Contact</a>
+      </div>
+    </nav>);
+
+}
+
+// ─── HERO / TITLE ─────────────────────────────────────────────────────────
+function HeroTitle() {
+  return (
+    <div style={{ textAlign: 'center', padding: '20px 48px 36px' }}>
+      <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(48px,6vw,80px)', fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 16 }}>
+        Case Studies
+      </h1>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 28, fontSize: 14, color: 'var(--ink2)' }}>
+        <span style={{ borderBottom: '1px solid var(--ink2)', paddingBottom: 2 }}>Explore</span>
+        <span>Explore by region</span>
+        <span>Request a study</span>
+      </div>
+    </div>);
+
+}
+
+// ─── SEARCH ───────────────────────────────────────────────────────────────
+function SearchBar({ query, setQuery }) {
+  return (
+    <div style={{ maxWidth: 520, margin: '0 auto 28px', padding: '0 48px' }}>
+      <div style={{ position: 'relative', background: 'var(--card)', borderRadius: 40, border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Know what you want? Search it!"
+          style={{ width: '100%', padding: '16px 60px 16px 28px', fontSize: 14, border: 'none', outline: 'none', background: 'transparent', color: 'var(--ink)', fontFamily: 'inherit' }} />
+        
+        <div style={{ position: 'absolute', right: 6, top: 6, width: 44, height: 44, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="2">
+            <circle cx="9" cy="9" r="6" />
+            <line x1="13.5" y1="13.5" x2="17" y2="17" strokeLinecap="round" />
+          </svg>
+        </div>
+      </div>
+    </div>);
+
+}
+
+// ─── FILTER CHIPS ─────────────────────────────────────────────────────────
+function FilterChips({ activeFilters, toggleFilter, clearAll }) {
+  const [openMenu, setOpenMenu] = useState(null);
+  const totalActive = Object.values(activeFilters).reduce((a, b) => a + b.length, 0);
+  return (
+    <div style={{ padding: '0 48px', maxWidth: 1240, margin: '0 auto 20px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      {Object.keys(FILTERS).map((cat) => {
+        const count = activeFilters[cat]?.length || 0;
+        const isOpen = openMenu === cat;
+        return (
+          <div key={cat} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setOpenMenu(isOpen ? null : cat)}
+              style={{
+                padding: '8px 18px', borderRadius: 24,
+                border: '1px solid ' + (count > 0 ? 'var(--accent)' : 'var(--border)'),
+                background: count > 0 ? 'var(--accent)' : 'var(--card)',
+                color: count > 0 ? 'white' : 'var(--ink)',
+                fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                transition: 'all 0.2s'
+              }}>
+              {cat}{count > 0 && <span style={{ background: 'rgba(255,255,255,0.25)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontFamily: 'var(--mono)' }}>{count}</span>}
+              <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+            </button>
+            {isOpen &&
+            <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, zIndex: 20, minWidth: 200, boxShadow: '0 8px 24px rgba(27,36,82,0.08)', maxHeight: 320, overflowY: 'auto' }}>
+                {FILTERS[cat].map((v) => {
+                const checked = activeFilters[cat]?.includes(v);
+                return (
+                  <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', cursor: 'pointer', borderRadius: 6, fontSize: 13, color: 'var(--ink)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                      <input type="checkbox" checked={!!checked} onChange={() => toggleFilter(cat, v)}
+                    style={{ accentColor: 'var(--accent)', width: 14, height: 14 }} />
+                      {v}
+                    </label>);
+
+              })}
+              </div>
+            }
+          </div>);
+
+      })}
+      {totalActive > 0 &&
+      <button onClick={clearAll} style={{ padding: '8px 16px', borderRadius: 24, border: '1px dashed var(--ink3)', background: 'transparent', color: 'var(--ink2)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--mono)' }}>
+          Clear all
+        </button>
+      }
+      <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>
+        {totalActive > 0 ? `${totalActive} filter${totalActive > 1 ? 's' : ''} active` : 'No filters active'}
+      </div>
+    </div>);
+
+}
+
+// ─── TEXAS MAP ────────────────────────────────────────────────────────────
+// Simplified Texas silhouette path (normalized to 800×720 approx)
+const TEXAS_PATH = "M 194.1 0 L 355.3 0 L 355.3 112.4 L 397.7 112.4 L 456.1 136.2 L 509.1 155.3 L 538.3 154.1 L 567.4 153.6 L 607.2 151.8 L 649.6 169.8 L 671.4 201.6 L 671.4 261.9 L 683 289.7 L 688.9 318.7 L 697.3 353.5 L 687.3 388.2 L 681.4 394 L 636.4 412.6 L 617.8 424.1 L 588.6 444.4 L 546.2 466.4 L 525 480.9 L 506.4 501.2 L 496.9 518.6 L 503.8 538.9 L 494.8 567.9 L 506.4 603.8 L 495.8 616.5 L 461.4 605.5 L 403 584.1 L 384.5 547.6 L 355.3 512.8 L 320.8 486.7 L 289 408.5 L 233.3 383.6 L 205.8 389.4 L 190.9 437.5 L 147.4 417.2 L 113.5 394 L 102.9 354.6 L 73.2 329.1 L 30.8 295.5 L 9 273.5 L 4.2 260.7 L 194.1 260.7 L 194.1 0 Z";
+
+function MapPanel({ projects, selected, setSelected }) {
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [drag, setDrag] = useState(null);
+  const zoomIn = () => setZoom((z) => Math.min(4, +(z * 1.4).toFixed(2)));
+  const zoomOut = () => setZoom((z) => {
+    const nz = Math.max(1, +(z / 1.4).toFixed(2));
+    if (nz === 1) setPan({ x: 0, y: 0 });
+    return nz;
+  });
+  const resetZoom = () => {setZoom(1);setPan({ x: 0, y: 0 });};
+  const onMouseDown = (e) => {if (zoom > 1) setDrag({ x: e.clientX, y: e.clientY, px: pan.x, py: pan.y });};
+  const onMouseMove = (e) => {
+    if (!drag) return;
+    setPan({ x: drag.px + (e.clientX - drag.x), y: drag.py + (e.clientY - drag.y) });
+  };
+  const onMouseUp = () => setDrag(null);
+  const W = 700,H = 620;
+  const pinned = projects.map((p) => ({ ...p, ...projectToXY(p.lat, p.lng, W, H) }));
+
+  return (
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '20px 24px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+        <div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.15em', color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Map</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Project Locations · Texas</div>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={zoomIn} title="Zoom in" style={{ width: 28, height: 28, borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card)', cursor: 'pointer', color: 'var(--ink2)', fontSize: 16, lineHeight: 1 }}>+</button>
+          <button onClick={zoomOut} title="Zoom out" style={{ width: 28, height: 28, borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card)', cursor: zoom > 1 ? 'pointer' : 'default', color: zoom > 1 ? 'var(--ink2)' : 'var(--ink3)', fontSize: 16, lineHeight: 1, opacity: zoom > 1 ? 1 : 0.5 }}>−</button>
+          {zoom > 1 && <button onClick={resetZoom} title="Reset zoom" style={{ width: 28, height: 28, borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card)', cursor: 'pointer', color: 'var(--ink2)', fontSize: 11, fontFamily: 'var(--mono)' }}>⟲</button>}
+        </div>
+      </div>
+      <div style={{ position: 'relative', flex: 1, minHeight: 400 }}>
+        <svg viewBox={`0 0 ${W} ${H}`}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+        style={{ width: '100%', height: 'auto', display: 'block', background: 'var(--bg2)', cursor: zoom > 1 ? drag ? 'grabbing' : 'grab' : 'default', userSelect: 'none' }}>
+          {/* Watercolor texture behind */}
+          <defs>
+            <pattern id="tx-wash" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+              <rect width="40" height="40" fill="var(--accent)" opacity="0.04" />
+              <circle cx="10" cy="10" r="1.5" fill="var(--accent)" opacity="0.06" />
+              <circle cx="30" cy="25" r="1" fill="var(--accent)" opacity="0.05" />
+            </pattern>
+            <filter id="wash-blur"><feGaussianBlur stdDeviation="0.5" /></filter>
+          </defs>
+          {/* Texas silhouette */}
+          <g style={{ transform: `translate(${pan.x / zoom}px, ${pan.y / zoom}px) scale(${zoom})`, transformOrigin: '50% 50%', transition: drag ? 'none' : 'transform 0.18s ease-out' }}>
+            <path d={TEXAS_PATH} fill="var(--accent)" fillOpacity="0.08" stroke="var(--accent)" strokeWidth="1.5" strokeOpacity="0.5" strokeLinejoin="round" />
+            <path d={TEXAS_PATH} fill="url(#tx-wash)" />
+          {/* City labels (major refs) */}
+          {[
+            { n: 'DFW', lat: 32.78, lng: -96.8, off: [0, -8] },
+            { n: 'HOUSTON', lat: 29.76, lng: -95.37, off: [0, -8] },
+            { n: 'AUSTIN', lat: 30.26, lng: -97.75, off: [-12, -8] },
+            { n: 'SAN ANTONIO', lat: 29.43, lng: -98.49, off: [-5, 10] },
+            { n: 'EL PASO', lat: 31.76, lng: -106.48, off: [20, -4] }].
+            map((l) => {
+              const { x, y } = projectToXY(l.lat, l.lng, W, H);
+              return <text key={l.n} x={x + l.off[0]} y={y + l.off[1]} fontFamily="Space Mono" fontSize="9" fill="var(--ink3)" letterSpacing="1" textAnchor={l.off[0] < 0 ? 'end' : 'start'}>{l.n}</text>;
+            })}
+          {/* Pins */}
+          {pinned.map((p) => {
+              const isSel = selected === p.id;
+              return (
+                <g key={p.id} style={{ cursor: 'pointer' }} onClick={() => setSelected(p.id)}
+                onMouseEnter={() => setSelected(p.id)}>
+                {/* Pulse ring for selected */}
+                {isSel && <circle cx={p.x} cy={p.y} r="16" fill={p.accent} opacity="0.15" />}
+                {isSel && <circle cx={p.x} cy={p.y} r="10" fill={p.accent} opacity="0.25" />}
+                {/* Pin */}
+                <path d={`M ${p.x} ${p.y - 14} C ${p.x - 6} ${p.y - 14} ${p.x - 6} ${p.y - 6} ${p.x} ${p.y} C ${p.x + 6} ${p.y - 6} ${p.x + 6} ${p.y - 14} ${p.x} ${p.y - 14} Z`}
+                  fill={isSel ? p.accent : 'white'} stroke={p.accent} strokeWidth="2" />
+                <circle cx={p.x} cy={p.y - 10} r="2.5" fill={isSel ? 'white' : p.accent} />
+              </g>);
+
+            })}
+          </g>
+        </svg>
+        {zoom > 1 &&
+        <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.92)', padding: '4px 10px', borderRadius: 12, fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink2)', border: '1px solid var(--border)' }}>
+            {zoom.toFixed(1)}×
+          </div>
+        }
+        {/* Hovered/selected info overlay */}
+        {selected && (() => {
+          const p = PROJECTS.find((x) => x.id === selected);
+          if (!p) return null;
+          return (
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'var(--accent)', color: 'white', padding: '18px 24px' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', opacity: 0.7, textTransform: 'uppercase', marginBottom: 6 }}>{p.city}, {p.state} · {p.region}</div>
+              <div style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 500, marginBottom: 8 }}>{p.name}</div>
+              <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 12, lineHeight: 1.5 }}>{p.address}</div>
+              <div style={{ display: 'flex', gap: 16, fontSize: 12, marginBottom: 14, fontFamily: 'var(--mono)' }}>
+                <span><span style={{ opacity: 0.6 }}>Acres </span>{p.acres}</span>
+                <span><span style={{ opacity: 0.6 }}>Invest </span>{p.investment}</span>
+                <span><span style={{ opacity: 0.6 }}>Aff </span>{p.affordable}</span>
+              </div>
+              <a href={p.href} style={{ display: 'inline-block', background: 'white', color: 'var(--accent)', padding: '8px 18px', borderRadius: 20, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                Read more →
+              </a>
+            </div>);
+
+        })()}
+      </div>
+    </div>);
+
+}
+
+// ─── PROJECT CARD ─────────────────────────────────────────────────────────
+function ProjectCard({ p, onHover, isHighlighted }) {
+  return (
+    <a href={p.href}
+    onMouseEnter={() => onHover(p.id)}
+    onMouseLeave={() => onHover(null)}
+    style={{
+      background: 'var(--card)', border: '1px solid ' + (isHighlighted ? p.accent : 'var(--border)'),
+      borderRadius: 14, overflow: 'hidden', textDecoration: 'none', color: 'inherit',
+      display: 'flex', flexDirection: 'column',
+      boxShadow: isHighlighted ? `0 8px 20px ${p.accent}22` : '0 2px 8px rgba(27,36,82,0.04)',
+      transform: isHighlighted ? 'translateY(-2px)' : 'translateY(0)',
+      transition: 'all 0.25s ease'
+    }}>
+      {/* Thumbnail */}
+      <div style={{ aspectRatio: '1/1', background: p.thumb, position: 'relative', overflow: 'hidden' }}>
+        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+          <defs>
+            <pattern id={'pc-' + p.id} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
+              <line x1="0" y1="0" x2="0" y2="20" stroke={p.accent} strokeWidth="1" opacity="0.2" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill={'url(#pc-' + p.id + ')'} />
+          {/* Isometric building stack decoration */}
+          <g transform="translate(50%, 55%)" opacity="0.55">
+            <polygon points="-30,-10 0,-25 30,-10 0,5" fill={p.accent} fillOpacity="0.35" />
+            <polygon points="-30,-10 -30,10 0,25 0,5" fill={p.accent} fillOpacity="0.55" />
+            <polygon points="30,-10 30,10 0,25 0,5" fill={p.accent} fillOpacity="0.7" />
+            <polygon points="0,-30 12,-24 12,-12 0,-6 -12,-12 -12,-24" fill={p.accent} fillOpacity="0.5" />
+          </g>
+        </svg>
+        <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(255,255,255,0.85)', padding: '3px 9px', borderRadius: 12, fontFamily: 'var(--mono)', fontSize: 9, color: p.accent, letterSpacing: '0.08em' }}>
+          {p.region.toUpperCase()}
+        </div>
+      </div>
+      {/* Name */}
+      <div style={{ padding: '14px 16px 16px', textAlign: 'center' }}>
+        <div style={{ fontFamily: 'var(--serif)', fontSize: 15, fontWeight: 500, color: 'var(--ink)', marginBottom: 4, letterSpacing: '-0.01em' }}>{p.name}</div>
+        <div style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink3)', letterSpacing: '0.06em' }}>{p.city}, {p.state}</div>
+      </div>
+    </a>);
+
+}
+
+// ─── COMPARISON ICONS ─────────────────────────────────────────────────────
+const Icon = {
+  money: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="3"/><path d="M6 10v5M18 10v5"/></svg>,
+  home: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11 L12 3 L21 11"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>,
+  leaf: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 4C10 4 4 10 4 20c10 0 16-6 16-16Z"/><path d="M4 20 L14 10"/></svg>,
+  mix: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="14" width="5" height="7"/><rect x="10" y="8" width="5" height="13"/><rect x="17" y="3" width="4" height="18"/></svg>,
+  verdict: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 L15 9 L21 10 L16.5 14.5 L18 21 L12 17.5 L6 21 L7.5 14.5 L3 10 L9 9 Z"/></svg>,
+  units: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="7" height="16"/><rect x="14" y="8" width="7" height="12"/><path d="M5 8h3M5 12h3M5 16h3M16 12h3M16 16h3"/></svg>,
+  solar: (c) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.5 4.5l1.5 1.5M18 18l1.5 1.5M4.5 19.5L6 18M18 6l1.5-1.5"/></svg>,
+  tree: (c) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 L6 12 L9 12 L5 18 L10 18 L10 21 L14 21 L14 18 L19 18 L15 12 L18 12 Z"/></svg>,
+  water: (c) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 C7 10 5 14 5 17 a7 7 0 0 0 14 0 C19 14 17 10 12 3 Z"/></svg>
+};
+
+const MIX_COLORS = {
+  residential: '#2B3373',
+  office:      '#479db3',
+  retail:      '#C98A5C',
+  hospitality: '#7A4A6B',
+  civic:       '#4A7A3D'
+};
+
+// ─── PROJECT SELECTOR CHIP ────────────────────────────────────────────────
+function CompareSelector({ allProjects, selected, toggle }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '16px 18px', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14 }}>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.14em', color: 'var(--ink3)', textTransform: 'uppercase', alignSelf: 'center', marginRight: 6 }}>Select 2+ to compare</div>
+      {allProjects.map((p) => {
+        const on = selected.includes(p.id);
+        return (
+          <button key={p.id} onClick={() => toggle(p.id)}
+            style={{
+              padding: '7px 14px', borderRadius: 20,
+              border: '1px solid ' + (on ? p.accent : 'var(--border)'),
+              background: on ? p.accent : 'var(--card)',
+              color: on ? 'white' : 'var(--ink)',
+              fontSize: 12, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+              transition: 'all 0.18s'
+            }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: on ? 'white' : p.accent }}/>
+            {p.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── COMPARE CARD (one per project, dashboard-style) ──────────────────────
+function CompareCard({ p, maxInvest, maxUnits, maxAff, maxSust }) {
+  const pctInvest = Math.round(p.investmentNum / maxInvest * 100);
+  const pctUnits  = Math.round(p.affordableUnits / maxUnits * 100);
+  const pctAff    = Math.round(p.affordableNum / maxAff * 100);
+  const pctSust   = Math.round(p.sustainScore / maxSust * 100);
+
+  const verdictColor = p.verdict === 'Exemplary' ? '#4A7A3D' : p.verdict === 'Strong' ? p.accent : '#C98A5C';
+
+  // Build stacked mix bar segments
+  const mixEntries = Object.entries(p.mix);
+
+  return (
+    <div style={{
+      background: 'var(--card)', border: '1.5px solid var(--border)',
+      borderRadius: 22, padding: '22px 22px 20px',
+      display: 'flex', flexDirection: 'column', gap: 16,
+      position: 'relative', overflow: 'hidden',
+      boxShadow: '0 4px 14px rgba(27,36,82,0.05)'
+    }}>
+      {/* Accent stripe */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: p.accent }}/>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.14em', color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>
+            {p.city}, {p.state} · {p.region}
+          </div>
+          <div style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.01em', lineHeight: 1.1 }}>{p.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--ink2)', marginTop: 4 }}>{p.type}</div>
+        </div>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: p.accent + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={p.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="10" width="6" height="11"/><rect x="9" y="5" width="6" height="16"/><rect x="15" y="13" width="6" height="8"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Investment */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          {Icon.money(p.accent)}
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', color: 'var(--ink2)', textTransform: 'uppercase' }}>Total Investment</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+          <div style={{ fontFamily: 'var(--serif)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{p.investment}</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink3)' }}>{p.acres} AC · ${(p.investmentNum*1000/p.acres).toFixed(1)}M/AC</div>
+        </div>
+        <div style={{ height: 6, background: 'var(--bg2)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ width: pctInvest + '%', height: '100%', background: p.accent, borderRadius: 3 }}/>
+        </div>
+      </div>
+
+      {/* Affordability dashboard row: donut + stats */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          {Icon.home(p.accent)}
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', color: 'var(--ink2)', textTransform: 'uppercase' }}>Affordability</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Donut */}
+          <svg width="72" height="72" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r="28" fill="none" stroke="var(--bg2)" strokeWidth="8"/>
+            <circle cx="36" cy="36" r="28" fill="none" stroke={p.accent} strokeWidth="8" strokeLinecap="round"
+              strokeDasharray={`${Math.PI * 56 * p.affordableNum / 100} ${Math.PI * 56}`}
+              transform="rotate(-90 36 36)"/>
+            <text x="36" y="34" textAnchor="middle" fontFamily="Fraunces" fontSize="17" fontWeight="500" fill="var(--ink)">{p.affordableNum}%</text>
+            <text x="36" y="46" textAnchor="middle" fontFamily="Space Mono" fontSize="7" fill="var(--ink3)" letterSpacing="1">AFFORDABLE</text>
+          </svg>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              {Icon.units(p.accent)}
+              <div style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 500, color: 'var(--ink)' }}>{p.affordableUnits.toLocaleString()}</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink3)' }}>/ {p.totalUnits.toLocaleString()} units</div>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--ink2)', lineHeight: 1.4 }}>
+              Affordable units dedicated under MFI 60–80%
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 12, background: verdictColor + '18', color: verdictColor, fontSize: 11, fontFamily: 'var(--mono)', letterSpacing: '0.06em', width: 'fit-content' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: verdictColor }}/>
+              Verdict · {p.verdict}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sustainability */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          {Icon.leaf(p.accent)}
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', color: 'var(--ink2)', textTransform: 'uppercase' }}>Sustainability</div>
+          <div style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 10, color: p.accent, letterSpacing: '0.08em' }}>LEED {p.leedLevel.toUpperCase()}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+          <div style={{ fontFamily: 'var(--serif)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{p.sustainScore}<span style={{ fontSize: 14, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>/100</span></div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink3)' }}>Sustain Index</div>
+        </div>
+        {/* Segmented gauge */}
+        <div style={{ display: 'flex', gap: 2, marginBottom: 12 }}>
+          {Array.from({length: 20}).map((_,i) => (
+            <div key={i} style={{ flex: 1, height: 8, borderRadius: 1, background: i < Math.round(p.sustainScore/5) ? p.accent : 'var(--bg2)' }}/>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, fontSize: 11 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {Icon.solar(p.accent)}
+            <div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink3)', letterSpacing: '0.06em' }}>SOLAR</div>
+              <div style={{ color: 'var(--ink)', fontWeight: 600 }}>{p.solarMW} MW</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {Icon.tree(p.accent)}
+            <div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink3)', letterSpacing: '0.06em' }}>TREES</div>
+              <div style={{ color: 'var(--ink)', fontWeight: 600 }}>{p.treesPlanted.toLocaleString()}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {Icon.water(p.accent)}
+            <div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink3)', letterSpacing: '0.06em' }}>WATER</div>
+              <div style={{ color: 'var(--ink)', fontWeight: 600 }}>−{p.waterReduction}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mixed-use breakdown */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          {Icon.mix(p.accent)}
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', color: 'var(--ink2)', textTransform: 'uppercase' }}>Mixed-Use Components</div>
+        </div>
+        <div style={{ display: 'flex', height: 18, borderRadius: 4, overflow: 'hidden', marginBottom: 12, border: '1px solid var(--border)' }}>
+          {mixEntries.map(([k,v]) => (
+            <div key={k} title={`${k}: ${v}%`} style={{ width: v + '%', background: MIX_COLORS[k] }}/>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
+          {mixEntries.map(([k,v]) => (
+            <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink2)' }}>
+              <span style={{ width: 9, height: 9, borderRadius: 2, background: MIX_COLORS[k] }}/>
+              <span style={{ textTransform: 'capitalize' }}>{k}</span>
+              <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink)' }}>{v}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPARE SECTION ──────────────────────────────────────────────────────
+function CompareSection() {
+  const [selected, setSelected] = useState(['assembly-park', 'plano', 'frisco']);
+  const toggle = (id) => setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+
+  const picked = PROJECTS.filter((p) => selected.includes(p.id));
+  const maxInvest = Math.max(...PROJECTS.map((p) => p.investmentNum));
+  const maxUnits  = Math.max(...PROJECTS.map((p) => p.affordableUnits));
+  const maxAff    = Math.max(...PROJECTS.map((p) => p.affordableNum));
+  const maxSust   = 100;
+
+  // Summary deltas
+  const totalInvest = picked.reduce((s,p) => s + p.investmentNum, 0);
+  const avgAff = picked.length ? (picked.reduce((s,p) => s + p.affordableNum, 0) / picked.length).toFixed(1) : 0;
+  const totalAffUnits = picked.reduce((s,p) => s + p.affordableUnits, 0);
+  const avgSust = picked.length ? Math.round(picked.reduce((s,p) => s + p.sustainScore, 0) / picked.length) : 0;
+
+  // Carousel state — how many cards visible per page based on viewport
+  const [perPage, setPerPage] = useState(2);
+  const [page, setPage] = useState(0);
+  const trackRef = useRef(null);
+
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      if (w < 760) setPerPage(1);
+      else if (w < 1100) setPerPage(2);
+      else setPerPage(2);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const totalPages = Math.max(1, Math.ceil(picked.length / perPage));
+  // Clamp page when selection/perPage changes
+  useEffect(() => {
+    if (page > totalPages - 1) setPage(Math.max(0, totalPages - 1));
+  }, [totalPages, page]);
+
+  const prev = () => setPage((p) => (p - 1 + totalPages) % totalPages);
+  const next = () => setPage((p) => (p + 1) % totalPages);
+
+  return (
+    <section id="compare" style={{ padding: '80px 48px 60px', maxWidth: 1240, margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.16em', color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Dashboard · Side-by-side</div>
+          <h2 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(36px,4.4vw,56px)', fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>Project Comparison</h2>
+          <p style={{ fontSize: 14, color: 'var(--ink2)', marginTop: 10, maxWidth: 560, lineHeight: 1.6 }}>
+            Pick two or more projects and scroll the carousel — capital stack, affordability verdict, sustainability index, and the mix of uses that shapes each district.
+          </p>
+        </div>
+        {picked.length >= 2 &&
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Combined', value: '$' + totalInvest.toFixed(2) + 'B', sub: 'invested' },
+              { label: 'Avg Affordable', value: avgAff + '%', sub: 'of all units' },
+              { label: 'Affordable Units', value: totalAffUnits.toLocaleString(), sub: 'combined' },
+              { label: 'Avg Sustain', value: avgSust + '/100', sub: 'index score' }
+            ].map((s) => (
+              <div key={s.label} style={{ minWidth: 120, padding: '12px 16px', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: 'var(--ink3)', textTransform: 'uppercase' }}>{s.label}</div>
+                <div style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 500, color: 'var(--ink)', marginTop: 2 }}>{s.value}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{s.sub}</div>
+              </div>
+            ))}
+          </div>
+        }
+      </div>
+
+      <CompareSelector allProjects={PROJECTS} selected={selected} toggle={toggle} />
+
+      <div style={{ marginTop: 24 }}>
+        {picked.length < 2 ?
+          <div style={{ padding: '60px 20px', textAlign: 'center', background: 'var(--card)', borderRadius: 18, border: '1px dashed var(--border)' }}>
+            <div style={{ fontFamily: 'var(--serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 6 }}>Select at least 2 projects</div>
+            <div style={{ fontSize: 13, color: 'var(--ink2)' }}>Use the chips above to build a comparison.</div>
+          </div>
+          :
+          <div>
+            {/* Carousel header — pagination controls */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.14em', color: 'var(--ink3)', textTransform: 'uppercase' }}>
+                Showing {page * perPage + 1}–{Math.min((page + 1) * perPage, picked.length)} of {picked.length}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* Dots */}
+                <div style={{ display: 'flex', gap: 6, marginRight: 6 }}>
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button key={i} onClick={() => setPage(i)} aria-label={`Page ${i+1}`}
+                      style={{
+                        width: i === page ? 20 : 8, height: 8, borderRadius: 4,
+                        border: 'none', padding: 0, cursor: 'pointer',
+                        background: i === page ? 'var(--accent)' : 'var(--border)',
+                        transition: 'all 0.25s ease'
+                      }}/>
+                  ))}
+                </div>
+                <button onClick={prev} aria-label="Previous" disabled={totalPages <= 1}
+                  style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid var(--border)', background: 'var(--card)', cursor: totalPages > 1 ? 'pointer' : 'default', opacity: totalPages > 1 ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button onClick={next} aria-label="Next" disabled={totalPages <= 1}
+                  style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid var(--accent)', background: 'var(--accent)', cursor: totalPages > 1 ? 'pointer' : 'default', opacity: totalPages > 1 ? 1 : 0.4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Carousel viewport */}
+            <div style={{ overflow: 'hidden', position: 'relative' }}>
+              <div
+                ref={trackRef}
+                style={{
+                  display: 'flex',
+                  transform: `translateX(-${page * 100}%)`,
+                  transition: 'transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1)',
+                  gap: 0
+                }}>
+                {Array.from({ length: totalPages }).map((_, pageIdx) => {
+                  const slice = picked.slice(pageIdx * perPage, (pageIdx + 1) * perPage);
+                  return (
+                    <div key={pageIdx} style={{ flex: '0 0 100%', display: 'grid', gridTemplateColumns: `repeat(${perPage}, 1fr)`, gap: 20, paddingRight: 2 }}>
+                      {slice.map((p) => (
+                        <CompareCard key={p.id} p={p} maxInvest={maxInvest} maxUnits={maxUnits} maxAff={maxAff} maxSust={maxSust} />
+                      ))}
+                      {/* Pad out the last page so grid cells match perPage */}
+                      {slice.length < perPage && Array.from({ length: perPage - slice.length }).map((_, i) => (
+                        <div key={'pad-' + i} />
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  );
+}
+
+// ─── MAIN LAYOUT ──────────────────────────────────────────────────────────
+function Main() {
+  const [query, setQuery] = useState('');
+  const [activeFilters, setActiveFilters] = useState({});
+  const [selected, setSelected] = useState('assembly-park');
+
+  const toggleFilter = (cat, val) => {
+    setActiveFilters((f) => {
+      const cur = f[cat] || [];
+      const next = cur.includes(val) ? cur.filter((x) => x !== val) : [...cur, val];
+      return { ...f, [cat]: next };
+    });
+  };
+  const clearAll = () => setActiveFilters({});
+
+  const filtered = useMemo(() => {
+    return PROJECTS.filter((p) => {
+      // Search
+      if (query) {
+        const q = query.toLowerCase();
+        if (!p.name.toLowerCase().includes(q) && !p.city.toLowerCase().includes(q) && !p.type.toLowerCase().includes(q) && !p.tags.some((t) => t.toLowerCase().includes(q))) return false;
+      }
+      // Filter groups (AND across categories, OR within category)
+      for (const [cat, vals] of Object.entries(activeFilters)) {
+        if (!vals.length) continue;
+        if (cat === 'State' && !vals.includes(p.state)) return false;
+        if (cat === 'City' && !vals.includes(p.city)) return false;
+        if (cat === 'Region' && !vals.includes(p.region)) return false;
+        if (cat === 'Tag' && !vals.some((v) => p.tags.includes(v))) return false;
+      }
+      return true;
+    });
+  }, [query, activeFilters]);
+
+  return (
+    <>
+      <Nav />
+      <HeroTitle />
+      <SearchBar query={query} setQuery={setQuery} />
+      <FilterChips activeFilters={activeFilters} toggleFilter={toggleFilter} clearAll={clearAll} />
+
+      <section id="case-studies" style={{ padding: '20px 48px 60px', maxWidth: 1240, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          {/* Left: project grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignContent: 'start' }}>
+            {filtered.length === 0 &&
+            <div style={{ gridColumn: '1 / -1', padding: '60px 20px', textAlign: 'center', background: 'var(--card)', borderRadius: 14, border: '1px dashed var(--border)' }}>
+                <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>⌘</div>
+                <div style={{ fontSize: 14, color: 'var(--ink2)', marginBottom: 6 }}>No projects match your filters</div>
+                <button onClick={clearAll} style={{ marginTop: 10, background: 'var(--accent)', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 20, fontSize: 12, cursor: 'pointer' }}>Clear filters</button>
+              </div>
+            }
+            {filtered.map((p) =>
+            <ProjectCard key={p.id} p={p} onHover={setSelected} isHighlighted={selected === p.id} />
+            )}
+          </div>
+          {/* Right: map panel (sticky) */}
+          <div id="map" style={{ position: 'sticky', top: 24, alignSelf: 'start' }}>
+            <MapPanel projects={filtered} selected={selected} setSelected={setSelected} />
+          </div>
+        </div>
+      </section>
+
+      {/* Divider */}
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 48px' }}>
+        <div style={{ height: 1, background: 'var(--accent)', opacity: 0.2 }} />
+      </div>
+
+      <CompareSection />
+
+      {/* Divider */}
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 48px' }}>
+        <div style={{ height: 1, background: 'var(--accent)', opacity: 0.2 }} />
+      </div>
+
+      {/* Request */}
+      <section id="about" style={{ padding: '80px 48px 100px', textAlign: 'center', maxWidth: 640, margin: '0 auto' }}>
+        <h2 style={{ fontFamily: 'var(--serif)', fontSize: 32, fontWeight: 500, color: 'var(--ink)', marginBottom: 16, letterSpacing: '-0.02em' }}>About
+
+        </h2>
+        <p style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.7, marginBottom: 28, maxWidth: 440, margin: '0 auto 28px' }}>
+          Our urban design studio is always expanding its case study catalog. Texas mixed-use development is diverse and abundant — request a study and we'll do our best to help.
+        </p>
+        <a href="mailto:info@assemblyurban.com" style={{ display: 'inline-block', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', padding: '12px 28px', borderRadius: 24, fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+          Request a case study
+        </a>
+      </section>
+
+      {/* Decorative divider */}
+      <div style={{ height: 32, background: `repeating-linear-gradient(90deg, var(--accent) 0, var(--accent) 1px, transparent 1px, transparent 12px)`, opacity: 0.3 }} />
+
+      {/* Footer */}
+      <footer style={{ padding: '40px 48px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
+        <div style={{ fontSize: 13, color: 'var(--ink2)' }}>Shaping the next generation of Texas cities</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <svg width="28" height="28" viewBox="0 0 36 36">
+            <g stroke="var(--accent)" strokeWidth="2" fill="none" strokeLinecap="round">
+              <line x1="18" y1="4" x2="18" y2="32" />
+              <line x1="4" y1="18" x2="32" y2="18" />
+              <line x1="8" y1="8" x2="28" y2="28" />
+              <line x1="28" y1="8" x2="8" y2="28" />
+            </g>
+          </svg>
+          <div>
+            <div style={{ fontFamily: 'var(--serif)', fontSize: 15, color: 'var(--ink)' }}>Mixed-Use Development</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink3)', letterSpacing: '0.08em' }}>URBAN PORTFOLIO</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--ink2)' }}>Designing Affordable Places</div>
+      </footer>
+    </>);
+
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Main />);
+</script>
+</body>
+</html>

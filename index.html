@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mixed-Use Development — Dallas, TX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F5F2ED;
+      --bg2: #EDEAE4;
+      --ink: #1A1714;
+      --ink2: #5A5550;
+      --ink3: #8A8580;
+      --accent: #C4714A;
+      --accent2: #4A6B3F;
+      --border: #DDD9D3;
+      --font: 'Space Grotesk', sans-serif;
+      --mono: 'Space Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--font); overflow-x: hidden; }
+    ::selection { background: var(--accent); color: white; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── ISO CONSTANTS ───────────────────────────────────────────────────────
+const TW = 64,TH = 32,FH = 20,OX = 0,OY = 70;
+
+function iso(col, row, floor) {
+  return {
+    x: OX + (col - row) * TW / 2,
+    y: OY + (col + row) * TH / 2 - floor * FH
+  };
+}
+function pStr(pts) {return pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');}
+
+// ─── ZONE PALETTE ────────────────────────────────────────────────────────
+const ZONES = {
+  residential: { top: '#CDC7BF', left: '#B5B0A8', right: '#9E9991', label: 'Residential' },
+  office: { top: '#BFC9D0', left: '#A8B9C0', right: '#90A9B0', label: 'Office' },
+  cultural: { top: '#BACDB0', left: '#A2B498', right: '#8AA180', label: 'Cultural' },
+  commercial: { top: '#CCC3AA', left: '#B4AC94', right: '#9C957E', label: 'Commercial' },
+  transit: { top: '#BEB4CF', left: '#A69DB8', right: '#8E86A1', label: 'Transit' },
+  green: { top: '#AACF96', left: '#92B67E', right: '#7A9D66', label: 'Green Space' },
+  parking: { top: '#C4C0BB', left: '#ADAAA5', right: '#96938F', label: 'Parking' }
+};
+
+// ─── BUILDINGS DATA ──────────────────────────────────────────────────────
+const BUILDINGS = [
+{ id: 'res-a', col: 0, row: 0, w: 2, d: 2, h: 9, zone: 'residential', label: 'Residential Tower A' },
+{ id: 'res-b', col: 0, row: 3, w: 2, d: 2, h: 7, zone: 'residential', label: 'Residential Tower B' },
+{ id: 'green-a', col: 3, row: 0, w: 2, d: 2, h: 0.3, zone: 'green', label: 'North Park' },
+{ id: 'off-a', col: 5, row: 0, w: 3, d: 2, h: 5, zone: 'office', label: 'Office Tower' },
+{ id: 'off-b', col: 9, row: 0, w: 2, d: 2, h: 4, zone: 'office', label: 'Office Annex' },
+{ id: 'green-b', col: 0, row: 6, w: 2, d: 2, h: 0.3, zone: 'green', label: 'West Commons' },
+{ id: 'plaza', col: 3, row: 4, w: 4, d: 3, h: 0.4, zone: 'cultural', label: 'Cultural Center & Plaza' },
+{ id: 'transit', col: 9, row: 4, w: 2, d: 3, h: 3, zone: 'transit', label: 'Transit Hub' },
+{ id: 'park-a', col: 5, row: 7, w: 2, d: 2, h: 3, zone: 'parking', label: 'Parking Structure A' },
+{ id: 'com-a', col: 0, row: 9, w: 4, d: 2, h: 2, zone: 'commercial', label: 'Retail District' },
+{ id: 'com-b', col: 5, row: 9, w: 4, d: 2, h: 2, zone: 'commercial', label: 'Commercial Hub' },
+{ id: 'park-b', col: 9, row: 9, w: 2, d: 2, h: 3, zone: 'parking', label: 'Parking Structure B' }].
+sort((a, b) => a.col + a.row - (b.col + b.row));
+
+// ─── ZONE INFO ────────────────────────────────────────────────────────────
+const ZONE_DATA = {
+  residential: {
+    headline: 'Residential Towers',
+    sub: '850 mixed-income units across two landmark towers',
+    desc: 'Rising 32 and 28 stories above Dallas, these twin towers anchor the development\'s northwest corner — offering studios through 3-bedroom residences with rooftop terraces, a fitness center, and direct access to the transit hub below.',
+    stats: [['850', 'Total Units'], ['32 / 28', 'Floors'], ['620,000', 'Gross Sq Ft'], ['15%', 'Affordable']],
+    phase: 'Phase 1 · Est. Q4 2027',
+    sustain: 'LEED Gold certified. Solar-ready rooftops, greywater recycling, green roof terraces on levels 10 and 20.',
+    afford: { summary: 'This development sets aside 15% of all units as affordable housing, serving households earning 60-80% of Area Median Income (AMI), plus 5% workforce units for essential workers in education, healthcare, and public service.', items: [['127', 'Affordable Units (60% AMI)'], ['43', 'Workforce Units (80% AMI)'], ['$1,150', 'Avg. Affordable Rent/mo'], ['20 yrs', 'Deed-Restricted Period']], policy: 'Compliant with Dallas Inclusionary Zoning policy. Qualifies for the City density bonus program, granting increased FAR in exchange for long-term affordability commitments.' }
+  },
+  office: {
+    headline: 'Office Buildings',
+    sub: '280,000 sq ft of Class A workspace',
+    desc: 'Two Class A towers attract Dallas\'s expanding tech and finance sectors. The primary tower features column-free floor plates of 22,000 sf, a triple-height lobby oriented to the cultural plaza, and a rooftop conference terrace.',
+    stats: [['280,000', 'Total Sq Ft'], ['18 / 14', 'Floors'], ['22,000', 'Floor Plate SF'], ['2028', 'Est. Occupancy']],
+    phase: 'Phase 2 · Est. Q2 2028',
+    sustain: 'LEED Platinum target. Chilled-beam HVAC, daylight harvesting, on-site stormwater management.',
+    afford: { summary: 'The office buildings participate in a district-wide community benefit agreement, contributing to an affordable housing fund and committing to local hiring goals of 30% for construction and 20% for permanent operations jobs.', items: [['30%', 'Local Construction Hiring'], ['20%', 'Permanent Local Jobs'], ['$2M', 'Affordable Housing Fund Contribution'], ['3', 'MWBE-Owned Tenants Min.']], policy: 'As part of a Community Benefit Agreement with the City of Dallas, office tenants agree to participate in workforce development and local hiring initiatives.' }
+  },
+  cultural: {
+    headline: 'Cultural Center & Plaza',
+    sub: '3-acre civic heart of the district',
+    desc: 'An activated public plaza anchors the development\'s center. The cultural center houses flexible gallery space, a 400-seat performance hall, and covered outdoor pavilions hosting year-round programming for Dallas residents.',
+    stats: [['3 acres', 'Plaza Area'], ['42,000', 'Indoor Sq Ft'], ['400', 'Seat Hall'], ['120+', 'Events/Year']],
+    phase: 'Phase 1 · Est. Q2 2027',
+    sustain: 'Shade canopies with integrated PV, permeable paving, native Texas plantings throughout.',
+    afford: { summary: 'The Cultural Center operates as a public-private partnership with free or low-cost access for Dallas residents. 30% of programming slots are reserved for community and non-profit groups at no cost.', items: [['4', 'Free Community Days/mo'], ['30%', 'Non-Profit Programming Slots'], ['$500K', 'Annual Arts Grants Budget'], ['50%', 'Subsidized Studio Rentals']], policy: 'The City of Dallas holds a permanent easement on the plaza, ensuring public access in perpetuity regardless of future ownership of the broader development.' }
+  },
+  commercial: {
+    headline: 'Commercial & Retail',
+    sub: '120,000 sq ft of activated street-level retail',
+    desc: 'Ground-floor retail and dining activates street edges across the development. Anchored by a central market hall, the commercial district includes 40+ small-format shops, local restaurants, and flexible incubator spaces.',
+    stats: [['120,000', 'Total Sq Ft'], ['40+', 'Tenants'], ['18,000', 'Market Hall SF'], ['60%', 'Local-Owned']],
+    phase: 'Phase 1 · Est. Q4 2027',
+    sustain: 'All-electric kitchens, composting infrastructure, and a local-first procurement program.',
+    afford: { summary: 'The retail program reserves 20% of leasable area for locally-owned small businesses at below-market rents, with a Small Business Incubator offering 12-month subsidized leases.', items: [['20%', 'Below-Market Retail Space'], ['40+', 'Small Business Tenants'], ['12 mo', 'Incubator Lease Term'], ['$18/sf', 'Avg. Subsidized Rent']], policy: 'The Dallas Small Business Stabilization Fund co-invests in the incubator program, providing wraparound technical assistance to tenant businesses during their first three years.' }
+  },
+  transit: {
+    headline: 'Transit Hub',
+    sub: 'Multimodal gateway connecting the district',
+    desc: 'DART light rail, bike-share, and bus rapid transit consolidate into one seamless hub — designed to reduce single-occupancy vehicle trips by 35%. The mobility backbone of the entire district.',
+    stats: [['85,000', 'Building Sq Ft'], ['6', 'Platforms'], ['200', 'Bike Spaces'], ['8,500', 'Daily Riders']],
+    phase: 'Phase 1 · Est. Q1 2027',
+    sustain: '100% renewable energy sourcing, all-electric fleet charging, 480kW solar canopy.',
+    afford: { summary: 'The Transit Hub is jointly operated with DART and accessible to all riders. Low-income transit pass subsidies reduce monthly costs by up to 50% for qualifying residents.', items: [['Free', 'First Ride Promotion'], ['50%', 'Low-Income Pass Discount'], ['200', 'Free Bike-Share Memberships'], ['$0', 'Community Shuttle (Local)']], policy: 'Bike-share memberships are offered at no cost to residents of affordable units, funded through the Transportation Equity Fund established in the community benefit agreement.' }
+  },
+  green: {
+    headline: 'Green Spaces',
+    sub: '8 acres of parks and urban greenways',
+    desc: 'North Park and West Commons create a connected green network threading through the development. Native Texas wildflower meadows, shaded walking trails, play areas, and bioswales make these parks the social fabric of daily life.',
+    stats: [['8 acres', 'Total Area'], ['340', 'Trees Planted'], ['0.8 mi', 'Trail Length'], ['80%', 'Native Plants']],
+    phase: 'Phase 1 · Est. Q2 2027',
+    sustain: 'Zero-irrigation native planting, bioswales capturing 100% of on-site stormwater runoff.',
+    afford: { summary: 'All parks and green spaces are publicly accessible at no charge, permanently. Programming including fitness classes, cultural events, and youth activities is offered free through partnerships with Dallas Parks and Recreation.', items: [['Free', 'All Public Access'], ['120+', 'Free Events Per Year'], ['400', 'Youth Program Spots'], ['8 acres', 'Publicly Owned Land']], policy: 'North Park and West Commons are deeded to the City of Dallas as public parkland. Maintenance costs are shared between the development and a public park endowment funded at project close.' }
+  },
+  parking: {
+    headline: 'Parking Structures',
+    sub: '1,200 smart-enabled spaces across two structures',
+    desc: 'Future-ready structures designed for eventual conversion to housing or office use. Twelve-foot clear heights, 300 EV charging stalls, and 480kW of rooftop solar make these among the most sustainable parking facilities in North Texas.',
+    stats: [['1,200', 'Total Spaces'], ['300', 'EV Chargers'], ['480 kW', 'Solar Output'], ['5', 'Levels Each']],
+    phase: 'Phase 2 · Est. Q3 2028',
+    sustain: 'Adaptive reuse-ready structure, 25% EV stalls, solar carport generating 480kW on-site.',
+    afford: { summary: 'The parking structures reserve 200 spaces at reduced monthly rates for residents of affordable units and essential workers. EV chargers are available to all users with subsidized rates for low-income cardholders.', items: [['200', 'Affordable-Rate Spaces'], ['$75/mo', 'Reduced Monthly Rate'], ['$0.10/kWh', 'Subsidized EV Rate'], ['30%', 'Carpool Spaces']], policy: 'Reduced-rate spaces are funded through a Transportation Demand Management agreement with the City, which also funds the subsidized EV charging program for income-qualified users.' }
+  }
+};
+
+// ─── ALL SITE PLANS ─────────────────────────────────────────────────────
+const SITE_PLANS = [
+  { id:'dallas', region:'dfw', city:'Dallas, TX', name:'Mixed-Use Development', type:'Mixed-Use · 12 acres', accent:'#479db3', href:'index.html', groundColor:'#E8E4DE', gridColor:'#D8D4CE', buildings:BUILDINGS, zones:ZONES, zoneData:ZONE_DATA },
+  { id:'houston', region:'houston', city:'Houston, TX', name:'Transit-Oriented District', type:'Transit-Oriented · 9 acres', accent:'#4A7A3D', href:'houston-project.html', groundColor:'#E2E6DF', gridColor:'#D5D9D2',
+    buildings:[{id:'res-a',col:0,row:0,w:2,d:2,h:8,zone:'residential',label:'Residential Tower A'},{id:'res-b',col:0,row:3,w:2,d:2,h:6,zone:'residential',label:'Residential Tower B'},{id:'transit-main',col:4,row:0,w:4,d:3,h:4,zone:'transit',label:'Multimodal Transit Hub'},{id:'off-a',col:9,row:0,w:2,d:2,h:5,zone:'office',label:'Office Tower A'},{id:'green-a',col:3,row:4,w:3,d:2,h:0.3,zone:'green',label:'Central Green'},{id:'com-a',col:0,row:7,w:4,d:2,h:2,zone:'commercial',label:'Retail Corridor'},{id:'off-b',col:5,row:7,w:3,d:2,h:4,zone:'office',label:'Office Tower B'},{id:'park-a',col:9,row:5,w:2,d:3,h:3,zone:'parking',label:'Parking Structure'},{id:'green-b',col:0,row:10,w:3,d:2,h:0.3,zone:'green',label:'South Park'},{id:'com-b',col:4,row:10,w:4,d:2,h:2,zone:'commercial',label:'Market Hall'}].sort((a,b)=>(a.col+a.row)-(b.col+b.row)),
+    zones:{residential:{top:'#C8D4C2',left:'#B0BCA9',right:'#98A491',label:'Residential'},office:{top:'#C2C8D4',left:'#A9B0BC',right:'#9198A4',label:'Office'},transit:{top:'#C8C2D4',left:'#B0A9BC',right:'#9891A4',label:'Transit'},green:{top:'#AACF96',left:'#92B67E',right:'#7A9D66',label:'Green Space'},commercial:{top:'#D4CEC2',left:'#BCB7A9',right:'#A4A091',label:'Commercial'},parking:{top:'#C8C4BC',left:'#B0ACA4',right:'#98948C',label:'Parking'}},
+    zoneData:{residential:{headline:'Residential Towers',sub:'680 units',desc:'Two towers with direct transit connections in Houston.',stats:[['680','Total Units'],['28/22','Floors'],['510,000','Sq Ft'],['18%','Affordable']],phase:'Phase 1 · Est. Q2 2028',sustain:'Solar-ready, EV charging, green roofs.',afford:{summary:'18% affordable at 60-80% AMI.',items:[['122','Affordable Units'],['$1,050','Avg. Rent/mo'],['10 yrs','Deed Restricted'],['18%','AMI Set-Aside']],policy:'Compliant with Houston Housing Policy 2020.'}},transit:{headline:'Multimodal Transit Hub',sub:'METRORail + BRT + bike',desc:'Light rail and BRT integrated for 12,000 daily riders.',stats:[['85,000','Sq Ft'],['4','Platforms'],['300','Bike Spaces'],['12,000','Daily Riders']],phase:'Phase 1 · Est. Q4 2027',sustain:'100% renewable, solar canopy.',afford:{summary:'50% pass subsidy for low-income riders.',items:[['50%','Pass Discount'],['200','Free Memberships'],['Free','Shuttle'],['$0','Community Access']],policy:'Transportation Equity Fund established in community benefit agreement.'}},office:{headline:'Office Buildings',sub:'210,000 sq ft Class A',desc:'Two towers for knowledge-economy tenants.',stats:[['210,000','Sq Ft'],['16/12','Floors'],['18,000','Floor Plate'],['2029','Occupancy']],phase:'Phase 2 · Est. Q1 2029',sustain:'LEED Platinum, chilled-beam HVAC.',afford:{summary:'30% local construction, $2M housing fund.',items:[['30%','Local Construction'],['20%','Local Jobs'],['$2M','Housing Fund'],['3','MWBE Min']],policy:'Houston Community Benefit Agreement.'}},green:{headline:'Green Spaces',sub:'5 acres',desc:'Native prairie grasses and rain gardens cool the district.',stats:[['5 acres','Area'],['280','Trees'],['0.6 mi','Trails'],['90%','Native']],phase:'Phase 1 · Est. Q3 2027',sustain:'Zero-irrigation, bioretention.',afford:{summary:'Free public access, 120+ free events per year.',items:[['Free','Access'],['120+','Events/yr'],['400','Youth Spots'],['5 acres','Public Land']],policy:'Parks deeded to City of Houston.'}},commercial:{headline:'Retail Corridor',sub:'95,000 sq ft',desc:'Continuous retail anchored by an indoor market hall.',stats:[['95,000','Sq Ft'],['35+','Tenants'],['16,000','Market Hall'],['55%','Local']],phase:'Phase 1 · Est. Q2 2028',sustain:'All-electric, composting.',afford:{summary:'20% below-market for small businesses.',items:[['20%','Below-Market'],['35+','Small Biz'],['12 mo','Incubator'],['$16/sf','Subsidized']],policy:'Small Business Stabilization Fund co-invests.'}},parking:{headline:'Parking Structure',sub:'900 spaces',desc:'Adaptive reuse-ready with 225 EV chargers.',stats:[['900','Spaces'],['225','EV Chargers'],['320 kW','Solar'],['6','Levels']],phase:'Phase 2 · Est. Q2 2029',sustain:'Adaptive reuse ready, 25% EV stalls.',afford:{summary:'200 reduced-rate spaces for affordable residents.',items:[['200','Reduced Spaces'],['$65/mo','Rate'],['$0.10/kWh','EV Subsidy'],['25%','EV Stalls']],policy:'TDM agreement with City funds subsidized parking.'}}},
+  },
+  { id:'austin', region:'austin', city:'Austin, TX', name:'Waterfront Development', type:'Waterfront · 11 acres', accent:'#3D5A7A', href:'austin-project.html', groundColor:'#DDE3E9', gridColor:'#D2D8DE',
+    buildings:[{id:'res-a',col:0,row:0,w:2,d:2,h:10,zone:'residential',label:'Residential Tower A'},{id:'res-b',col:0,row:3,w:2,d:2,h:8,zone:'residential',label:'Residential Tower B'},{id:'res-c',col:0,row:6,w:2,d:2,h:6,zone:'residential',label:'Residential Tower C'},{id:'off-a',col:4,row:0,w:3,d:2,h:6,zone:'office',label:'Tech Office Tower'},{id:'water-a',col:8,row:0,w:4,d:2,h:0.4,zone:'waterfront',label:'Waterfront Promenade'},{id:'cultural',col:4,row:3,w:3,d:2,h:2,zone:'cultural',label:'Arts & Culture Center'},{id:'green-a',col:8,row:3,w:3,d:2,h:0.3,zone:'green',label:'Riverside Park'},{id:'com-a',col:3,row:6,w:4,d:2,h:2,zone:'commercial',label:'Retail + Dining'},{id:'water-b',col:8,row:6,w:4,d:2,h:0.4,zone:'waterfront',label:'Water Feature Plaza'},{id:'green-b',col:3,row:9,w:3,d:2,h:0.3,zone:'green',label:'South Lawn'},{id:'off-b',col:7,row:9,w:3,d:2,h:4,zone:'office',label:'Creative Office Campus'}].sort((a,b)=>(a.col+a.row)-(b.col+b.row)),
+    zones:{residential:{top:'#BECDD9',left:'#A6B5C1',right:'#8E9DA9',label:'Residential'},office:{top:'#C9BEDE',left:'#B1A6C6',right:'#998EAE',label:'Office'},cultural:{top:'#BED9CE',left:'#A6C1B6',right:'#8EA99E',label:'Cultural'},green:{top:'#AACF96',left:'#92B67E',right:'#7A9D66',label:'Green Space'},commercial:{top:'#D9D0BE',left:'#C1B8A6',right:'#A9A08E',label:'Commercial'},waterfront:{top:'#B8D4E8',left:'#A0BCCE',right:'#88A4B4',label:'Waterfront'}},
+    zoneData:{residential:{headline:'Residential Towers',sub:'920 units, three waterfront towers',desc:'Three towers cascading toward Lady Bird Lake with panoramic views.',stats:[['920','Units'],['32/26/20','Floors'],['740,000','Sq Ft'],['12%','Affordable']],phase:'Phase 1 · Est. Q3 2028',sustain:'LEED Gold, green rooftops.',afford:{summary:'12% affordable at 60-80% AMI, plus artist live-work lofts.',items:[['110','Affordable Units'],['20','Artist Lofts'],['$1,200','Avg. Rent/mo'],['15 yrs','Deed Restricted']],policy:'Austin Affordability Unlocked Program, 25% density bonus.'}},office:{headline:'Office Buildings',sub:'240,000 sq ft',desc:'Two tech office buildings with waterfront trail access.',stats:[['240,000','Sq Ft'],['20/12','Floors'],['20,000','Floor Plate'],['2029','Occupancy']],phase:'Phase 2 · Est. Q2 2029',sustain:'LEED Platinum, carbon-neutral.',afford:{summary:'$1.5M housing fund, 30% local construction.',items:[['30%','Local Construction'],['$1.5M','Housing Fund'],['20%','Local Jobs'],['3','MWBE Min']],policy:'Austin Community Benefits Framework.'}},cultural:{headline:'Arts & Culture Center',sub:'350-seat live music venue',desc:'Gallery, live music, and maker studios celebrating Austin creativity.',stats:[['38,000','Sq Ft'],['350','Capacity'],['24','Studios'],['80+','Events/mo']],phase:'Phase 1 · Est. Q1 2028',sustain:'Solar canopy, net-zero target.',afford:{summary:'30% non-profit slots, $500K annual arts grants.',items:[['30%','Non-Profit Slots'],['$0','Community Days'],['50%','Subsidized Studios'],['$500K','Arts Grants']],policy:'City permanent easement ensures public access in perpetuity.'}},green:{headline:'Green Spaces',sub:'6 acres lakeside',desc:'Lady Bird Lake trail connections with native Hill Country planting.',stats:[['6 acres','Area'],['400','Trees'],['1.2 mi','Trails'],['100%','Native']],phase:'Phase 1 · Est. Q3 2027',sustain:'Zero-irrigation, bioswales.',afford:{summary:'Free public access, 200+ free events per year.',items:[['Free','Access'],['200+','Events/yr'],['500','Youth'],['6 acres','Public Land']],policy:'Deeded to City of Austin with maintenance endowment.'}},commercial:{headline:'Retail & Dining',sub:'80,000 sq ft lakeside',desc:'Waterfront dining with priority for Austin independent businesses.',stats:[['80,000','Sq Ft'],['30+','Tenants'],['60%','Local'],['$22/sf','Market']],phase:'Phase 1 · Est. Q3 2028',sustain:'All-electric, composting.',afford:{summary:'20% below-market for local small businesses.',items:[['20%','Below-Market'],['30+','Local Tenants'],['12 mo','Incubator'],['$18/sf','Subsidized']],policy:'Austin Small Business Program co-invests.'}},waterfront:{headline:'Waterfront Promenade',sub:'800 lf public lakefront',desc:'Continuous promenade with kayak launches and floating gardens.',stats:[['800 lf','Length'],['Public','Always'],['4','Kayak Launches'],['2 acres','Water Features']],phase:'Phase 1 · Est. Q2 2027',sustain:'Floating wetlands, permeable paving.',afford:{summary:'Permanently public. Free kayak rentals for affordable residents.',items:[['Free','Access'],['Free','Kayak Rentals'],['Public','Deed-Restricted'],['800 lf','Open Space']],policy:'Permanent easement held by City of Austin.'}}},
+  },
+  { id:'sanantonio', region:'sanantonio', city:'San Antonio, TX', name:'Arts District', type:'Arts + Historic · 8 acres', accent:'#7A4A6B', groundColor:'#E6E0E6', gridColor:'#DAD4DA',
+    buildings:[{id:'res-a',col:0,row:0,w:2,d:2,h:8,zone:'residential',label:'Residential Tower A'},{id:'historic-a',col:3,row:0,w:3,d:2,h:3,zone:'historic',label:'Historic Renovation A'},{id:'res-b',col:0,row:3,w:2,d:2,h:6,zone:'residential',label:'Residential Tower B'},{id:'cultural-main',col:3,row:3,w:4,d:3,h:2,zone:'cultural',label:'Arts & Performance Center'},{id:'historic-b',col:8,row:0,w:2,d:2,h:3,zone:'historic',label:'Historic Renovation B'},{id:'com-a',col:8,row:3,w:3,d:2,h:2,zone:'commercial',label:'Mercado District'},{id:'green-a',col:0,row:6,w:3,d:2,h:0.3,zone:'green',label:'Heritage Garden'},{id:'plaza-main',col:4,row:7,w:3,d:3,h:0.4,zone:'plaza',label:'Central Plaza'},{id:'com-b',col:8,row:6,w:3,d:2,h:2,zone:'commercial',label:'Artisan Market Hall'},{id:'green-b',col:0,row:9,w:4,d:2,h:0.3,zone:'green',label:'South Riverwalk'},{id:'res-c',col:8,row:9,w:3,d:2,h:5,zone:'residential',label:'Residential Tower C'}].sort((a,b)=>(a.col+a.row)-(b.col+b.row)),
+    zones:{residential:{top:'#D4C8D4',left:'#BCB0BC',right:'#A498A4',label:'Residential'},cultural:{top:'#D4BEC8',left:'#BCA6B0',right:'#A48E98',label:'Cultural'},green:{top:'#AACF96',left:'#92B67E',right:'#7A9D66',label:'Green Space'},commercial:{top:'#D4CEC0',left:'#BCB6A8',right:'#A49E90',label:'Commercial'},historic:{top:'#D4C8A8',left:'#BCB090',right:'#A49878',label:'Historic'},plaza:{top:'#C8D4BE',left:'#B0BCA6',right:'#98A48E',label:'Plaza'}},
+    zoneData:{residential:{headline:'Residential Towers',sub:'720 units, three buildings',desc:'Three buildings preserving San Antonio low-rise character near the River Walk.',stats:[['720','Units'],['24/18/14','Floors'],['580,000','Sq Ft'],['20%','Affordable']],phase:'Phase 1 · Est. Q4 2028',sustain:'LEED Gold, solar-ready.',afford:{summary:'20% affordable at 60-80% AMI with artist live-work lofts.',items:[['144','Affordable Units'],['$1,000','Avg. Rent/mo'],['20 yrs','Deed Restricted'],['20%','AMI Set-Aside']],policy:'San Antonio Neighborhood Housing Services compliance.'}},cultural:{headline:'Arts & Performance Center',sub:'500-seat hall + galleries',desc:'50,000 sf arts complex honoring San Antonio cultural heritage.',stats:[['50,000','Sq Ft'],['500','Seats'],['3','Gallery Wings'],['150+','Events/yr']],phase:'Phase 1 · Est. Q2 2028',sustain:'Solar canopy, net-zero.',afford:{summary:'30% non-profit programming slots, $500K arts grants annually.',items:[['30%','Non-Profit Slots'],['$500K','Arts Grants/yr'],['50%','Subsidized Studios'],['Free','Community Days']],policy:'City permanent easement ensures cultural programming in perpetuity.'}},green:{headline:'Green Spaces',sub:'4 acres River Walk connected',desc:'Heritage Garden and South Riverwalk with drought-tolerant native plants.',stats:[['4 acres','Area'],['250','Trees'],['0.9 mi','Trails'],['85%','Native']],phase:'Phase 1 · Est. Q1 2027',sustain:'Zero-irrigation, limestone bioswales.',afford:{summary:'Free public access. 150+ free events per year.',items:[['Free','Access'],['150+','Events/yr'],['300','Youth'],['4 acres','Public Land']],policy:'Deeded to City of San Antonio with River Walk endowment.'}},commercial:{headline:'Mercado & Artisan Market',sub:'90,000 sq ft',desc:'Mercado District celebrates heritage through food and artisan retail.',stats:[['90,000','Sq Ft'],['50+','Vendors'],['70%','Local'],['Bilingual','Services']],phase:'Phase 1 · Est. Q4 2028',sustain:'All-electric, composting.',afford:{summary:'25% below-market for local vendors and artisans.',items:[['25%','Below-Market'],['50+','Local Vendors'],['12 mo','Incubator'],['$15/sf','Subsidized']],policy:'SBDC co-invests with bilingual technical assistance.'}},historic:{headline:'Historic Renovations',sub:'1920s adaptive reuse',desc:'Two 1920s warehouses reused as creative office, brick facades preserved.',stats:[['42,000','Sq Ft'],['1920s','Original'],['LEED Gold','Target'],['100%','Facade Kept']],phase:'Phase 1 · Est. Q3 2027',sustain:'Adaptive reuse cuts embodied carbon 60%.',afford:{summary:'Non-profit office space and community rooms at subsidized rates.',items:[['30%','Non-Profit Space'],['$12/sf','Subsidized'],['8','Community Rooms'],['LEED','Gold Target']],policy:'Texas Historical Commission easement ensures preservation.'}},plaza:{headline:'Central Plaza',sub:'3-acre civic space',desc:'Shaded plaza with Spanish Colonial design honoring local heritage.',stats:[['3 acres','Area'],['200','Seats'],['Year-round','Programming'],['Public','Always']],phase:'Phase 1 · Est. Q2 2027',sustain:'Permeable paving, PV shade canopies.',afford:{summary:'Permanently public, deed-restricted open space.',items:[['Free','All Access'],['200+','Events/yr'],['Public','Deed-Restricted'],['3 acres','Civic Space']],policy:'Permanent easement held by City of San Antonio.'}}},
+  },
+  { id:'frisco', region:'dfw', city:'Frisco, TX', name:'Innovation Hub', type:'Tech + Residential · 7 acres', accent:'#2E7D7D', href:'frisco-project.html', groundColor:'#E0EAE8', gridColor:'#D0DEDD',
+    buildings:[{id:'off-a',col:0,row:0,w:3,d:2,h:7,zone:'office',label:'Innovation Tower A'},{id:'off-b',col:4,row:0,w:3,d:2,h:5,zone:'office',label:'Innovation Tower B'},{id:'res-a',col:0,row:3,w:2,d:2,h:8,zone:'residential',label:'Residential Tower A'},{id:'res-b',col:0,row:6,w:2,d:2,h:6,zone:'residential',label:'Residential Tower B'},{id:'green-a',col:3,row:3,w:2,d:2,h:0.3,zone:'green',label:'Tech Campus Green'},{id:'com-a',col:6,row:3,w:3,d:2,h:2,zone:'commercial',label:'Retail & Dining'},{id:'amenity',col:3,row:6,w:3,d:2,h:3,zone:'cultural',label:'Innovation Center'},{id:'park-a',col:7,row:6,w:2,d:2,h:3,zone:'parking',label:'Parking Structure'},{id:'green-b',col:0,row:9,w:4,d:2,h:0.3,zone:'green',label:'South Plaza'}].sort((a,b)=>(a.col+a.row)-(b.col+b.row)),
+    zones:{residential:{top:'#B8D4CE',left:'#A0BCB6',right:'#88A49E',label:'Residential'},office:{top:'#B8CECC',left:'#A0B6B4',right:'#889E9C',label:'Office'},cultural:{top:'#BCCCB8',left:'#A4B4A0',right:'#8C9C88',label:'Innovation'},green:{top:'#AACF96',left:'#92B67E',right:'#7A9D66',label:'Green Space'},commercial:{top:'#CEC8B8',left:'#B6B0A0',right:'#9E9888',label:'Commercial'},parking:{top:'#C4C0BC',left:'#ACAAA6',right:'#94928E',label:'Parking'}},
+    zoneData:{residential:{headline:'Residential Towers',sub:'620 units for tech workers',desc:'Two residential towers designed for Frisco tech professionals, with co-working lounges, high-speed fiber, and direct access to the innovation campus.',stats:[['620','Units'],['28/22','Floors'],['490,000','Sq Ft'],['12%','Affordable']],phase:'Phase 1 · Est. Q1 2028',sustain:'LEED Gold, solar-ready, EV charging.',afford:{summary:'12% affordable units at 80% AMI targeting essential service workers in Frisco.',items:[['74','Affordable Units'],['$1,300','Avg. Rent/mo'],['10 yrs','Deed Restricted'],['12%','AMI Set-Aside']],policy:'Frisco Workforce Housing Program compliance, density bonus for affordability commitment.'}},office:{headline:'Innovation Towers',sub:'310,000 sq ft Class A tech office',desc:'Two Class A office towers anchor the tech campus with open floor plates, rooftop collaboration decks, and high-speed fiber infrastructure for Frisco growing tech sector.',stats:[['310,000','Sq Ft'],['22/16','Floors'],['24,000','Floor Plate'],['2028','Occupancy']],phase:'Phase 1 · Est. Q4 2027',sustain:'LEED Platinum, smart building systems, 100% renewable energy.',afford:{summary:'25% local hiring commitment, STEM apprenticeship program with Frisco ISD.',items:[['25%','Local Hiring'],['50','STEM Apprentices'],['$1.8M','Education Fund'],['3','MWBE Tenants Min']],policy:'Frisco Economic Development Corporation partnership agreement.'}},cultural:{headline:'Innovation Center',sub:'Community tech and maker hub',desc:'A shared innovation facility with maker labs, a startup incubator, conference facilities, and public programming connecting Frisco residents to the tech economy.',stats:[['28,000','Sq Ft'],['120','Maker Stations'],['20','Startup Suites'],['200+','Events/yr']],phase:'Phase 1 · Est. Q3 2027',sustain:'Net-zero energy, solar canopy, passive cooling.',afford:{summary:'50% of programming slots free or subsidized for Frisco ISD students and community groups.',items:[['50%','Free Programming'],['120','Youth Tech Seats'],['$300K','STEM Grants/yr'],['Free','Community Access']],policy:'Partnership with Frisco ISD and Collin College for community STEM programming.'}},green:{headline:'Green Spaces',sub:'4 acres of tech campus greenery',desc:'Tech Campus Green and South Plaza create shaded outdoor amenity space with native North Texas landscaping, outdoor seating, and walking paths.',stats:[['4 acres','Area'],['180','Trees'],['0.5 mi','Trails'],['85%','Native Plants']],phase:'Phase 1 · Est. Q2 2027',sustain:'Zero-irrigation native planting, stormwater bioretention.',afford:{summary:'All green spaces publicly accessible at no charge.',items:[['Free','Public Access'],['60+','Events/yr'],['250','Youth Spots'],['4 acres','Public Land']],policy:'Public access easement held by City of Frisco.'}},commercial:{headline:'Retail & Dining',sub:'55,000 sq ft street-level retail',desc:'Ground-floor retail and dining serving the innovation campus with priority for local Frisco businesses and food concepts.',stats:[['55,000','Sq Ft'],['20+','Tenants'],['60%','Local-Owned'],['$24/sf','Market Rate']],phase:'Phase 1 · Est. Q4 2027',sustain:'All-electric kitchens, composting, local-first procurement.',afford:{summary:'15% below-market retail space for local small businesses.',items:[['15%','Below-Market'],['20+','Local Tenants'],['12 mo','Incubator'],['$20/sf','Subsidized Rate']],policy:'Frisco Small Business program provides wraparound support.'}},parking:{headline:'Parking Structure',sub:'700 spaces, EV-ready',desc:'A smart parking structure with EV charging on 30% of stalls and solar carport canopy, designed for future conversion to residential or office use.',stats:[['700','Spaces'],['210','EV Chargers'],['240 kW','Solar'],['5','Levels']],phase:'Phase 2 · Est. Q2 2028',sustain:'Adaptive reuse-ready, 30% EV stalls, solar carport.',afford:{summary:'150 reduced-rate spaces for affordable-unit residents and essential workers.',items:[['150','Reduced Spaces'],['$70/mo','Reduced Rate'],['$0.10/kWh','EV Subsidy'],['30%','EV Stalls']],policy:'TDM agreement with City of Frisco funds subsidized parking and EV charging.'}}},
+  },
+  { id:'plano', region:'dfw', city:'Plano, TX', name:'Legacy TOD', type:'Transit Village · 10 acres', accent:'#5A3E7A', href:'plano-project.html', groundColor:'#E4E0EE', gridColor:'#D8D4E4',
+    buildings:[{id:'res-a',col:0,row:0,w:2,d:2,h:9,zone:'residential',label:'Residential Tower A'},{id:'res-b',col:0,row:3,w:2,d:2,h:7,zone:'residential',label:'Residential Tower B'},{id:'transit-main',col:3,row:0,w:3,d:2,h:3,zone:'transit',label:'DART Station Hub'},{id:'off-a',col:7,row:0,w:3,d:2,h:5,zone:'office',label:'Corporate Campus A'},{id:'off-b',col:7,row:3,w:2,d:2,h:4,zone:'office',label:'Corporate Campus B'},{id:'green-a',col:3,row:3,w:2,d:2,h:0.3,zone:'green',label:'Station Green'},{id:'com-a',col:0,row:6,w:5,d:2,h:2,zone:'commercial',label:'Village Retail'},{id:'green-b',col:6,row:6,w:2,d:2,h:0.3,zone:'green',label:'West Park'},{id:'park-a',col:9,row:6,w:2,d:2,h:4,zone:'parking',label:'Parking Structure'},{id:'res-c',col:0,row:9,w:3,d:2,h:5,zone:'residential',label:'Residential Tower C'},{id:'com-b',col:4,row:9,w:4,d:2,h:2,zone:'commercial',label:'Market Street'}].sort((a,b)=>(a.col+a.row)-(b.col+b.row)),
+    zones:{residential:{top:'#C8C0D8',left:'#B0A8C0',right:'#9890A8',label:'Residential'},office:{top:'#C0C8D8',left:'#A8B0C0',right:'#9098A8',label:'Corporate Office'},transit:{top:'#D0C8C0',left:'#B8B0A8',right:'#A09890',label:'Transit'},green:{top:'#AACF96',left:'#92B67E',right:'#7A9D66',label:'Green Space'},commercial:{top:'#D0C8B8',left:'#B8B0A0',right:'#A09888',label:'Commercial'},parking:{top:'#C4C0C8',left:'#ACAAB0',right:'#949298',label:'Parking'}},
+    zoneData:{residential:{headline:'Residential Towers',sub:'780 units across three towers',desc:'Three residential towers step down in height toward Legacy Drive, offering walkable access to DART light rail and Plano corporate campuses.',stats:[['780','Units'],['30/24/18','Floors'],['620,000','Sq Ft'],['15%','Affordable']],phase:'Phase 1 · Est. Q3 2028',sustain:'LEED Gold, transit-oriented design reduces car trips 40%.',afford:{summary:'15% affordable at 60-80% AMI, prioritizing DART commuters and Plano essential workers.',items:[['117','Affordable Units'],['$1,150','Avg. Rent/mo'],['15 yrs','Deed Restricted'],['15%','AMI Set-Aside']],policy:'Plano Housing Policy compliance, transit-area density bonus program.'}},transit:{headline:'DART Station Hub',sub:'Silver Line TOD anchor',desc:'A new DART Silver Line station integrated with bus rapid transit and bike-share creates a seamless transit gateway for Plano Legacy corridor workers and residents.',stats:[['62,000','Sq Ft'],['2','Rail Platforms'],['150','Bike Spaces'],['9,000','Daily Riders']],phase:'Phase 1 · Est. Q1 2027',sustain:'100% renewable energy, solar canopy, EV fleet charging.',afford:{summary:'50% transit pass subsidy for affordable-unit residents. 150 free bike-share memberships.',items:[['50%','Pass Discount'],['150','Free Memberships'],['Free','Shuttle'],['$0','Community Access']],policy:'DART Transportation Equity Fund established in community benefit agreement.'}},office:{headline:'Corporate Campus',sub:'260,000 sq ft Class A office',desc:'Two interconnected corporate campus buildings attract Plano Legacy corridor employers seeking walkable, transit-accessible headquarters with amenity-rich campuses.',stats:[['260,000','Sq Ft'],['18/14','Floors'],['20,000','Floor Plate'],['2029','Occupancy']],phase:'Phase 2 · Est. Q1 2029',sustain:'LEED Platinum, smart building systems.',afford:{summary:'30% local hiring, $1.5M workforce development fund for Plano residents.',items:[['30%','Local Hiring'],['$1.5M','Workforce Fund'],['20%','Local Jobs'],['3','MWBE Min']],policy:'Plano EDC partnership agreement with local hiring commitments.'}},green:{headline:'Green Spaces',sub:'5 acres of transit-oriented parks',desc:'Station Green and West Park provide shaded amenity space with native North Texas planting, connecting DART riders to the broader Plano trail network.',stats:[['5 acres','Area'],['220','Trees'],['0.7 mi','Trails'],['80%','Native']],phase:'Phase 1 · Est. Q3 2027',sustain:'Zero-irrigation, stormwater bioretention.',afford:{summary:'All parks publicly accessible. 80+ free events per year.',items:[['Free','Access'],['80+','Events/yr'],['300','Youth Spots'],['5 acres','Public Land']],policy:'Deeded to City of Plano with maintenance endowment.'}},commercial:{headline:'Village Retail & Market Street',sub:'100,000 sq ft street-level retail',desc:'Two retail corridors activate the ground floor — Village Retail along the transit hub and Market Street at the south end — with local restaurants, boutiques, and a weekly farmers market.',stats:[['100,000','Sq Ft'],['35+','Tenants'],['55%','Local-Owned'],['Farmers','Market Weekly']],phase:'Phase 1 · Est. Q3 2028',sustain:'All-electric, composting, local-first sourcing.',afford:{summary:'20% below-market retail for Plano small businesses and emerging vendors.',items:[['20%','Below-Market'],['35+','Local Tenants'],['12 mo','Incubator'],['$18/sf','Subsidized']],policy:'Plano Small Business Development program co-invests with technical assistance.'}},parking:{headline:'Parking Structure',sub:'800 spaces, smart-enabled',desc:'A smart parking structure with dynamic pricing, EV charging on 25% of stalls, and solar canopy — designed for future conversion potential.',stats:[['800','Spaces'],['200','EV Chargers'],['280 kW','Solar'],['5','Levels']],phase:'Phase 2 · Est. Q2 2029',sustain:'Adaptive reuse-ready, smart pricing, solar carport.',afford:{summary:'160 reduced-rate spaces for affordable residents and transit commuters.',items:[['160','Reduced Spaces'],['$70/mo','Rate'],['$0.10/kWh','EV Subsidy'],['25%','EV Stalls']],policy:'TDM agreement with City of Plano funds reduced-rate parking program.'}}},
+  },
+  { id:'assembly-park', region:'dfw', city:'Plano, TX', name:'Assembly Park', type:'Urban Park District · 10 acres', accent:'#00A693', href:'assembly-park.html', groundColor:'#E0EEE9', gridColor:'#D0E4DD',
+    buildings:[{id:'res-a',col:0,row:0,w:2,d:2,h:9,zone:'residential',label:'Residential Tower A'},{id:'res-b',col:0,row:3,w:2,d:2,h:7,zone:'residential',label:'Residential Tower B'},{id:'transit-main',col:3,row:0,w:3,d:2,h:3,zone:'transit',label:'DART Station Hub'},{id:'off-a',col:7,row:0,w:3,d:2,h:5,zone:'office',label:'Corporate Campus A'},{id:'off-b',col:7,row:3,w:2,d:2,h:4,zone:'office',label:'Corporate Campus B'},{id:'green-a',col:3,row:3,w:2,d:2,h:0.3,zone:'green',label:'Assembly Green'},{id:'com-a',col:0,row:6,w:5,d:2,h:2,zone:'commercial',label:'Park Retail Row'},{id:'green-b',col:6,row:6,w:2,d:2,h:0.3,zone:'green',label:'West Lawn'},{id:'park-a',col:9,row:6,w:2,d:2,h:4,zone:'parking',label:'Parking Structure'},{id:'res-c',col:0,row:9,w:3,d:2,h:5,zone:'residential',label:'Residential Tower C'},{id:'com-b',col:4,row:9,w:4,d:2,h:2,zone:'commercial',label:'Market Pavilion'}].sort((a,b)=>(a.col+a.row)-(b.col+b.row)),
+    zones:{residential:{top:'#B4D4C8',left:'#9CBCB0',right:'#84A498',label:'Residential'},office:{top:'#B4C8D4',left:'#9CB0BC',right:'#8498A4',label:'Corporate Office'},transit:{top:'#C8C4BC',left:'#B0ACA4',right:'#98948C',label:'Transit'},green:{top:'#A0CF8C',left:'#88B674',right:'#709D5C',label:'Park & Green'},commercial:{top:'#C8C4B0',left:'#B0AC98',right:'#989480',label:'Retail'},parking:{top:'#C0C8C0',left:'#A8B0A8',right:'#909890',label:'Parking'}},
+    zoneData:{residential:{headline:'Residential Towers',sub:'780 units across three towers',desc:'Three residential towers surrounding Assembly Park, offering walkable access to green space, transit, and Plano corporate campuses.',stats:[['780','Units'],['30/24/18','Floors'],['620,000','Sq Ft'],['15%','Affordable']],phase:'Phase 1 · Est. Q3 2028',sustain:'LEED Gold, green rooftop terraces, EV-ready.',afford:{summary:'15% affordable units at 60-80% AMI, prioritizing Plano transit commuters.',items:[['117','Affordable Units'],['$1,150','Avg. Rent/mo'],['15 yrs','Deed Restricted'],['15%','AMI Set-Aside']],policy:'Plano Housing Policy compliance, transit-area density bonus.'}},office:{headline:'Corporate Campus',sub:'260,000 sq ft Class A office',desc:'Two interconnected campus buildings for Plano Legacy corridor employers with park-facing lobbies and green space access.',stats:[['260,000','Sq Ft'],['18/14','Floors'],['20,000','Floor Plate'],['2029','Occupancy']],phase:'Phase 2 · Est. Q1 2029',sustain:'LEED Platinum, smart systems.',afford:{summary:'30% local hiring, $1.5M workforce fund.',items:[['30%','Local Hiring'],['$1.5M','Workforce Fund'],['20%','Local Jobs'],['3','MWBE Min']],policy:'Plano EDC partnership agreement.'}},transit:{headline:'DART Station Hub',sub:'Silver Line TOD anchor',desc:'New DART Silver Line station with bus rapid transit and bike-share, creating a seamless mobility gateway for Assembly Park.',stats:[['62,000','Sq Ft'],['2','Rail Platforms'],['150','Bike Spaces'],['9,000','Daily Riders']],phase:'Phase 1 · Est. Q1 2027',sustain:'100% renewable energy, solar canopy.',afford:{summary:'50% transit pass subsidy for affordable residents.',items:[['50%','Pass Discount'],['150','Free Memberships'],['Free','Shuttle'],['$0','Community Access']],policy:'DART Transportation Equity Fund.'}},green:{headline:'Assembly Park & Green',sub:'6 acres of signature parkland',desc:'Assembly Green and West Lawn form the civic heart of the district with native plantings, event lawns, and trail connections to Plano parks network.',stats:[['6 acres','Total Area'],['280','Trees'],['0.8 mi','Trails'],['90%','Native Plants']],phase:'Phase 1 · Est. Q2 2027',sustain:'Zero-irrigation, stormwater bioretention.',afford:{summary:'Permanently free public access, 120+ free events per year.',items:[['Free','Access'],['120+','Events/yr'],['350','Youth Spots'],['6 acres','Public Land']],policy:'Deeded to City of Plano with maintenance endowment.'}},commercial:{headline:'Park Retail Row & Market Pavilion',sub:'100,000 sq ft park-facing retail',desc:'Two retail destinations activate the park edges — Park Retail Row with local shops and dining, Market Pavilion with weekly vendors and flexible event space.',stats:[['100,000','Sq Ft'],['35+','Tenants'],['60%','Local-Owned'],['Weekly','Farmers Market']],phase:'Phase 1 · Est. Q3 2028',sustain:'All-electric, composting, local-first.',afford:{summary:'20% below-market for local small businesses.',items:[['20%','Below-Market'],['35+','Local Tenants'],['12 mo','Incubator'],['$18/sf','Subsidized']],policy:'Plano Small Business Development co-invests.'}},parking:{headline:'Parking Structure',sub:'800 spaces, smart-enabled',desc:'Smart parking with dynamic pricing, 25% EV stalls, and solar carport designed for future conversion.',stats:[['800','Spaces'],['200','EV Chargers'],['280 kW','Solar'],['5','Levels']],phase:'Phase 2 · Est. Q2 2029',sustain:'Adaptive reuse-ready, smart pricing, solar.',afford:{summary:'160 reduced-rate spaces for affordable residents and transit commuters.',items:[['160','Reduced Spaces'],['$70/mo','Rate'],['$0.10/kWh','EV Subsidy'],['25%','EV Stalls']],policy:'TDM agreement with City of Plano funds subsidized parking.'}}},
+  },
+
+];
+
+// ─── BUILDING BLOCK ──────────────────────────────────────────────────────
+function BuildingBlock({ b, hovered, selected, onHover, onClick, zones, accent }) {
+  const { col, row, w, d, h, zone } = b;
+  const c = (zones||ZONES)[zone] || {top:'#CCC',left:'#BBB',right:'#AAA'};
+  const isH = hovered === b.id;
+  const isS = selected === b.id;
+
+  const top = [iso(col, row, h), iso(col + w, row, h), iso(col + w, row + d, h), iso(col, row + d, h)];
+  const left = [iso(col, row + d, h), iso(col + w, row + d, h), iso(col + w, row + d, 0), iso(col, row + d, 0)];
+  const right = [iso(col + w, row, h), iso(col + w, row + d, h), iso(col + w, row + d, 0), iso(col + w, row, 0)];
+
+  const brightness = isH ? 'brightness(1.08)' : isS ? 'brightness(1.12)' : 'none';
+
+  return (
+    <g
+      style={{ cursor: 'pointer', filter: brightness !== 'none' ? brightness : undefined }}
+      onClick={() => onClick(b)}
+      onMouseEnter={() => onHover(b.id)}
+      onMouseLeave={() => onHover(null)}>
+      
+          {h > 0.5 && <polygon points={pStr(left)} fill={c.left} stroke="#F0EDE8" strokeWidth="0.5" />}
+          {h > 0.5 && <polygon points={pStr(right)} fill={c.right} stroke="#F0EDE8" strokeWidth="0.5" />}
+          <polygon points={pStr(top)} fill={c.top} stroke="#F0EDE8" strokeWidth="0.5" />
+          {isS && <polygon points={pStr(top)} fill="none" stroke={accent||"#C4714A"} strokeWidth="2.5" strokeLinejoin="round" />}
+          {isH && !isS && <polygon points={pStr(top)} fill="none" stroke={accent||"#C4714A"} strokeWidth="1.5" strokeOpacity="0.5" strokeLinejoin="round" />}
+        </g>);
+
+}
+
+// ─── ISO MODEL ────────────────────────────────────────────────────────────
+function IsoModel({ onSelect, selected, plan, mini }) {
+  const [hovered, setHovered] = useState(null);
+  const planBuildings = (plan && plan.buildings) || BUILDINGS;
+  const planZones = (plan && plan.zones) || ZONES;
+  const planAccent = (plan && plan.accent) || '#C4714A';
+  const groundColor = (plan && plan.groundColor) || '#E8E4DE';
+  const gridColor = (plan && plan.gridColor) || '#D8D4CE';
+  const gnd = [iso(0, 0, 0), iso(12, 0, 0), iso(12, 12, 0), iso(0, 12, 0)];
+  // Road strips (flat thin boxes as ground markings)
+  const roadH = [iso(0, 5.9, 0.05), iso(12, 5.9, 0.05), iso(12, 6.1, 0.05), iso(0, 6.1, 0.05)];
+  const roadV = [iso(4.9, 0, 0.05), iso(5.1, 0, 0.05), iso(5.1, 12, 0.05), iso(4.9, 12, 0.05)];
+
+  return (
+    <svg
+      viewBox="-420 -200 840 640"
+      style={{ width: '100%', height: '100%', display: 'block' }}
+      xmlns="http://www.w3.org/2000/svg">
+      
+          <defs>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#1A1714" floodOpacity="0.08" />
+            </filter>
+          </defs>
+
+          {/* Ground plane */}
+          <polygon points={pStr(gnd)} fill={groundColor} />
+
+          {/* Subtle grid lines */}
+          {[2, 4, 6, 8, 10].map((r) =>
+      <line key={`gr${r}`}
+      x1={iso(0, r, 0).x} y1={iso(0, r, 0).y}
+      x2={iso(12, r, 0).x} y2={iso(12, r, 0).y}
+      stroke={gridColor} strokeWidth="0.5" strokeDasharray="4 4" />
+
+      )}
+          {[2, 4, 6, 8, 10].map((c) =>
+      <line key={`gc${c}`}
+      x1={iso(c, 0, 0).x} y1={iso(c, 0, 0).y}
+      x2={iso(c, 12, 0).x} y2={iso(c, 12, 0).y}
+      stroke={gridColor} strokeWidth="0.5" strokeDasharray="4 4" />
+
+      )}
+
+          {/* Road markings */}
+          <polygon points={pStr(roadH)} fill="#D4D0CA" />
+          <polygon points={pStr(roadV)} fill="#D4D0CA" />
+
+          {/* Buildings */}
+          {planBuildings.map((b) =>
+      <BuildingBlock
+        key={b.id} b={b}
+        hovered={mini ? null : hovered} selected={mini ? null : selected}
+        onHover={mini ? ()=>{} : setHovered} onClick={mini ? ()=>{} : onSelect}
+        zones={planZones} accent={planAccent} />
+
+      )}
+
+          {/* Zone labels on hover */}
+          {!mini && hovered && (() => {
+        const b = planBuildings.find((x) => x.id === hovered);
+        if (!b) return null;
+        const p = iso(b.col + b.w / 2, b.row + b.d / 2, b.h + 0.8);
+        return (
+          <g>
+                <rect x={p.x - 60} y={p.y - 14} width="120" height="24" rx="4" fill="#1A1714" fillOpacity="0.85" />
+                <text x={p.x} y={p.y + 2} textAnchor="middle" fill="white" fontSize="11" fontFamily="Space Grotesk" fontWeight="500">
+                  {b.label}
+                </text>
+              </g>);
+
+      })()}
+        </svg>);
+
+}
+
+// ─── INFO PANEL ────────────────────────────────────────────────────────────
+function InfoPanel({ building, onClose }) {
+  const [tab, setTab] = useState('overview');
+  const data = building ? ZONE_DATA[building.zone] : null;
+  const zone = building ? ZONES[building.zone] : null;
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, right: 0, height: '100%',
+      width: building ? '380px' : '0px',
+      transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)',
+      overflow: 'hidden',
+      background: '#FAFAF8',
+      borderLeft: '1px solid var(--border)',
+      display: 'flex', flexDirection: 'column',
+      zIndex: 10
+    }}>
+          {building && data &&
+      <>
+              {/* Header */}
+              <div style={{
+          background: zone.top,
+          padding: '28px 28px 20px',
+          position: 'relative',
+          flexShrink: 0
+        }}>
+                <button onClick={onClose} style={{
+            position: 'absolute', top: 16, right: 16,
+            background: 'rgba(255,255,255,0.6)', border: 'none',
+            borderRadius: '50%', width: 28, height: 28,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, color: '#1A1714'
+          }}>✕</button>
+                <div style={{
+            fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: '#1A1714', opacity: 0.6, marginBottom: 6
+          }}>
+                  {ZONES[building.zone].label}
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 600, color: '#1A1714', lineHeight: 1.2, marginBottom: 6 }}>
+                  {data.headline}
+                </div>
+                <div style={{ fontSize: 13, color: '#1A1714', opacity: 0.7, lineHeight: 1.4 }}>
+                  {data.sub}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                {['overview', 'stats', 'sustain', 'afford'].map((t) =>
+          <button key={t} onClick={() => setTab(t)} style={{
+            flex: 1, padding: '12px 0', border: 'none',
+            background: 'none', cursor: 'pointer',
+            fontFamily: 'var(--font)', fontSize: 11, fontWeight: 500,
+            color: tab === t ? 'var(--accent)' : 'var(--ink2)',
+            borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent',
+            transition: 'all 0.2s',
+            letterSpacing: '0.03em',
+            textTransform: 'capitalize'
+          }}>
+                    {t === 'sustain' ? 'Sustainability' : t === 'afford' ? 'Affordability' : t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+          )}
+              </div>
+
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+
+                {tab === 'overview' &&
+          <div>
+                    {/* Rendering placeholder */}
+                    <div style={{
+              width: '100%', aspectRatio: '16/9',
+              background: '#E8E4DE',
+              borderRadius: 8, marginBottom: 20,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', overflow: 'hidden'
+            }}>
+                      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+                        <defs>
+                          <pattern id={`stripe-${building.id}`} x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+                            <line x1="0" y1="0" x2="0" y2="12" stroke="#D4D0CA" strokeWidth="1" />
+                          </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill={`url(#stripe-${building.id})`} />
+                      </svg>
+                      <div style={{
+                position: 'relative', zIndex: 1, textAlign: 'center',
+                fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink3)',
+                lineHeight: 1.6
+              }}>
+                        <div style={{ fontSize: 20, marginBottom: 4, opacity: 0.5 }}>◻</div>
+                        Architectural Rendering<br />{data.headline}
+                      </div>
+                    </div>
+
+                    <p style={{
+              fontSize: 14, lineHeight: 1.7, color: 'var(--ink2)',
+              marginBottom: 20
+            }}>
+                      {data.desc}
+                    </p>
+
+                    {/* Phase pill */}
+                    <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'var(--bg2)', borderRadius: 20,
+              padding: '6px 14px', fontSize: 12,
+              fontFamily: 'var(--mono)'
+            }}>
+                      <span style={{ color: 'var(--accent)', fontSize: 8 }}>●</span>
+                      <span style={{ color: 'var(--ink2)' }}>{data.phase}</span>
+                    </div>
+                  </div>
+          }
+
+                {tab === 'stats' &&
+          <div>
+                    <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24
+            }}>
+                      {data.stats.map(([val, lbl]) =>
+              <div key={lbl} style={{
+                background: 'var(--bg2)', borderRadius: 8,
+                padding: '16px 14px'
+              }}>
+                          <div style={{
+                  fontSize: 22, fontWeight: 700,
+                  color: 'var(--ink)', letterSpacing: '-0.02em',
+                  marginBottom: 4
+                }}>{val}</div>
+                          <div style={{
+                  fontSize: 11, color: 'var(--ink3)',
+                  fontFamily: 'var(--mono)', letterSpacing: '0.06em',
+                  textTransform: 'uppercase'
+                }}>{lbl}</div>
+                        </div>
+              )}
+                    </div>
+
+                    {/* Zone color reference */}
+                    <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '14px', borderRadius: 8,
+              background: 'var(--bg2)', fontSize: 13, color: 'var(--ink2)'
+            }}>
+                      <div style={{
+                width: 24, height: 24, borderRadius: 4,
+                background: zone.top,
+                border: '1px solid rgba(0,0,0,0.08)',
+                flexShrink: 0
+              }} />
+                      <span><strong style={{ color: 'var(--ink)' }}>{ZONES[building.zone].label}</strong> zone on site plan</span>
+                    </div>
+                  </div>
+          }
+
+                
+                {tab === 'afford' && data.afford &&
+          <div>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#B4CEDE', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, fontSize: 18 }}>◇</div>
+                    <p style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--ink2)', marginBottom: 20 }}>{data.afford.summary}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+                      {data.afford.items.map(([val, lbl]) =>
+              <div key={lbl} style={{ background: 'var(--bg2)', borderRadius: 8, padding: '14px 12px' }}>
+                          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: 4 }}>{val}</div>
+                          <div style={{ fontSize: 10, color: 'var(--ink3)', fontFamily: 'var(--mono)', letterSpacing: '0.06em', textTransform: 'uppercase', lineHeight: 1.4 }}>{lbl}</div>
+                        </div>
+              )}
+                    </div>
+                    <div style={{ background: '#EAF3F7', borderRadius: 8, padding: '14px 16px', fontSize: 13, color: 'var(--ink2)', lineHeight: 1.7, borderLeft: '3px solid var(--accent)' }}>
+                      <strong style={{ color: 'var(--ink)', display: 'block', marginBottom: 6 }}>Policy Context</strong>
+                      {data.afford.policy}
+                    </div>
+                  </div>
+          }
+
+                {tab === 'sustain' &&
+          <div>
+                    <div style={{
+              width: 40, height: 40, borderRadius: '50%',
+              background: '#AACF96', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              marginBottom: 16, fontSize: 18
+            }}>
+                      ◈
+                    </div>
+                    <p style={{
+              fontSize: 14, lineHeight: 1.75, color: 'var(--ink2)',
+              marginBottom: 24
+            }}>
+                      {data.sustain}
+                    </p>
+
+                    {/* Sustainability goals */}
+                    {[
+            ['Carbon Neutral', '2040 target for full district'],
+            ['Water Reduction', '50% vs. baseline through native planting'],
+            ['Renewable Energy', '100% clean energy by Phase 2']].
+            map(([title, note]) =>
+            <div key={title} style={{
+              display: 'flex', alignItems: 'flex-start', gap: 12,
+              marginBottom: 16, paddingBottom: 16,
+              borderBottom: '1px solid var(--border)'
+            }}>
+                        <span style={{ color: 'var(--accent2)', marginTop: 2, flexShrink: 0 }}>✓</span>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>{title}</div>
+                          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{note}</div>
+                        </div>
+                      </div>
+            )}
+                  </div>
+          }
+              </div>
+            </>
+      }
+        </div>);
+
+}
+
+// ─── LEGEND ───────────────────────────────────────────────────────────────
+function Legend() {
+  return (
+    <div style={{
+      display: 'flex', flexWrap: 'wrap', gap: '8px 16px',
+      padding: '0 0 8px'
+    }}>
+          {Object.entries(ZONES).map(([key, z]) =>
+      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{
+          width: 12, height: 12, borderRadius: 2,
+          background: z.top,
+          border: '1px solid rgba(0,0,0,0.1)'
+        }} />
+              <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
+                {z.label.toUpperCase()}
+              </span>
+            </div>
+      )}
+        </div>);
+
+}
+
+// ─── NAV ─────────────────────────────────────────────────────────────────
+function Nav({ scrollY }) {
+  const solid = scrollY > 60;
+  return (
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '0 48px',
+      height: 64,
+      background: solid ? 'rgba(245,242,237,0.95)' : 'transparent',
+      backdropFilter: solid ? 'blur(12px)' : 'none',
+      borderBottom: solid ? '1px solid var(--border)' : 'none',
+      transition: 'all 0.3s ease'
+    }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+          width: 28, height: 28,
+          background: 'var(--accent)',
+          borderRadius: 4,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'white', fontSize: 12, fontWeight: 700
+        }}>MX</div>
+            <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
+              Mixed-Use Development
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
+            <a href="home.html" style={{
+              fontSize: 13, color: 'var(--ink2)', textDecoration: 'none',
+              fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6,
+              transition: 'color 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--ink)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--ink2)'}>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 7 L8 2 L14 7 L14 14 L10 14 L10 9 L6 9 L6 14 L2 14 Z"/></svg>
+              Home
+            </a>
+            {['#model', '#about', '#timeline', '#team'].map((href, i) => {
+          const labels = ['Site Plan', 'About', 'Timeline', 'Case Studies'];
+          return (
+            <a key={href} href={href} style={{
+              fontSize: 13, color: 'var(--ink2)', textDecoration: 'none',
+              fontWeight: 500, transition: 'color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.color = 'var(--ink)'}
+            onMouseLeave={(e) => e.target.style.color = 'var(--ink2)'}>
+              {labels[i]}</a>);
+
+        })}
+            <a href="#contact" style={{
+          fontSize: 13, fontWeight: 600,
+          background: 'var(--accent)', color: 'white',
+          padding: '8px 18px', borderRadius: 6,
+          textDecoration: 'none',
+          transition: 'opacity 0.2s'
+        }}>Inquire</a>
+          </div>
+        </nav>);
+
+}
+
+// ─── HERO ─────────────────────────────────────────────────────────────────
+function Hero() {
+  return (
+    <section style={{
+      minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      justifyContent: 'center', alignItems: 'center',
+      padding: '80px 48px 40px',
+      background: 'linear-gradient(180deg, #EDEAE4 0%, #F5F2ED 60%)',
+      textAlign: 'center', position: 'relative'
+    }}>
+          <div style={{
+        fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.18em',
+        color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 20
+      }}>
+            Dallas, Texas · Mixed-Use Development
+          </div>
+          <h1 style={{
+        fontSize: 'clamp(36px, 5vw, 68px)',
+        fontWeight: 700, lineHeight: 1.05,
+        letterSpacing: '-0.03em',
+        color: 'var(--ink)',
+        maxWidth: 700,
+        marginBottom: 24,
+        textWrap: 'balance'
+      }}>
+            Improving Affordability for<br />
+            <span style={{ color: 'var(--accent)' }}>Mixed-Use Development in Dallas</span>
+          </h1>
+          <p style={{
+        fontSize: 17, lineHeight: 1.7, color: 'var(--ink2)',
+        maxWidth: 520, marginBottom: 48,
+        textWrap: 'pretty'
+      }}>
+            12 acres of mixed-income housing, Class A office, retail, parks,
+            and transit infrastructure — all woven into the urban fabric of Dallas.
+          </p>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <a href="#model" style={{
+          background: 'var(--ink)', color: 'white',
+          padding: '14px 28px', borderRadius: 8,
+          fontSize: 14, fontWeight: 600, textDecoration: 'none',
+          transition: 'opacity 0.2s'
+        }}>Explore Site Plan</a>
+            <a href="#about" style={{
+          background: 'transparent', color: 'var(--ink)',
+          padding: '14px 28px', borderRadius: 8,
+          fontSize: 14, fontWeight: 500, textDecoration: 'none',
+          border: '1.5px solid var(--border)',
+          transition: 'border-color 0.2s'
+        }}>Learn More</a>
+          </div>
+
+          {/* Scroll indicator */}
+          <div style={{
+        position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+        opacity: 0.4
+      }}>
+            <span style={{ fontSize: 10, fontFamily: 'var(--mono)', letterSpacing: '0.12em', color: 'var(--ink)' }}>SCROLL</span>
+            <svg width="1" height="32" viewBox="0 0 1 32"><line x1="0.5" y1="0" x2="0.5" y2="32" stroke="currentColor" strokeWidth="1" /></svg>
+          </div>
+        </section>);
+
+}
+
+// ─── MODEL SECTION ────────────────────────────────────────────────────────
+function ModelSection() {
+  const [selected, setSelected] = useState(null);
+  const [planIdx, setPlanIdx] = useState(0);
+  const [showAll, setShowAll] = useState(false);
+  const PAGE_PLANS = SITE_PLANS.filter(p => p.region === 'dfw');
+  const plan = PAGE_PLANS[planIdx] || PAGE_PLANS[0];
+
+  const handleSelect = useCallback((b) => { setSelected(p => p?.id===b.id ? null : b); }, []);
+  const handleClose = useCallback(() => setSelected(null), []);
+  const goPrev = () => { setPlanIdx(i=>Math.max(0,i-1)); setSelected(null); };
+  const goNext = () => { setPlanIdx(i=>Math.min(PAGE_PLANS.length-1,i+1)); setSelected(null); };
+
+  return (
+    <section id="model" style={{ background:'var(--bg)', paddingTop:80 }}>
+      {/* Header */}
+      <div style={{ padding:'0 48px 24px', display:'flex', alignItems:'flex-end', justifyContent:'space-between', flexWrap:'wrap', gap:16 }}>
+        <div style={{ maxWidth:560 }}>
+          <div style={{ fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.15em', color:'var(--ink3)', textTransform:'uppercase', marginBottom:12 }}>Interactive Site Plan</div>
+          <h2 style={{ fontSize:32, fontWeight:700, letterSpacing:'-0.025em', color:'var(--ink)', marginBottom:8 }}>Explore the District</h2>
+          <p style={{ fontSize:15, color:'var(--ink2)', lineHeight:1.6, textWrap:'pretty' }}>Click any building or zone to explore program details, key metrics, and sustainability goals.</p>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+          {!showAll && (<>
+            <button onClick={goPrev} disabled={planIdx===0} style={{ width:40,height:40,borderRadius:'50%',border:'1.5px solid var(--border)',background:planIdx>0?'var(--ink)':'var(--bg2)',color:planIdx>0?'white':'var(--ink3)',cursor:planIdx>0?'pointer':'default',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s' }}>←</button>
+            <button onClick={goNext} disabled={planIdx===PAGE_PLANS.length-1} style={{ width:40,height:40,borderRadius:'50%',border:'1.5px solid var(--border)',background:planIdx<PAGE_PLANS.length-1?'var(--ink)':'var(--bg2)',color:planIdx<PAGE_PLANS.length-1?'white':'var(--ink3)',cursor:planIdx<PAGE_PLANS.length-1?'pointer':'default',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s' }}>→</button>
+          </>)}
+          <button onClick={()=>{ setShowAll(s=>!s); setSelected(null); }} style={{ padding:'10px 20px',borderRadius:8,border:'1.5px solid var(--border)',background:showAll?'var(--ink)':'transparent',color:showAll?'white':'var(--ink)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font)',transition:'all 0.2s',whiteSpace:'nowrap' }}>
+            {showAll ? 'Single View' : 'Show All (' + PAGE_PLANS.length + ')'}
+          </button>
+        </div>
+      </div>
+
+      {/* Dots + city label */}
+      {!showAll && (
+        <div style={{ padding:'0 48px 16px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+          <div style={{ display:'flex', gap:6 }}>
+            {PAGE_PLANS.map((_,i)=>(
+              <button key={i} onClick={()=>{ setPlanIdx(i); setSelected(null); }} style={{ width:i===planIdx?20:8,height:8,borderRadius:4,background:i===planIdx?plan.accent:'var(--border)',border:'none',cursor:'pointer',padding:0,transition:'all 0.25s ease' }}/>
+            ))}
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+            <div style={{ width:8,height:8,borderRadius:'50%',background:plan.accent }}/>
+            <span style={{ fontSize:13,fontWeight:600,color:'var(--ink)' }}>{plan.name}</span>
+            <span style={{ fontSize:12,color:'var(--ink3)',fontFamily:'var(--mono)' }}>— {plan.city}</span>
+            <span style={{ fontSize:11,color:'var(--ink3)',background:'var(--bg2)',borderRadius:20,padding:'3px 10px',fontFamily:'var(--mono)' }}>{plan.type}</span>
+            {plan.href && plan.href !== 'index.html' && (
+              <a href={plan.href} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:20, background:plan.accent, color:'white', textDecoration:'none', fontSize:11, fontWeight:600, fontFamily:'var(--font)', letterSpacing:'0.02em', transition:'all 0.2s', marginLeft:4 }}
+                onMouseEnter={e=>{e.currentTarget.style.opacity='0.85';e.currentTarget.style.transform='translateX(2px)';}}
+                onMouseLeave={e=>{e.currentTarget.style.opacity='1';e.currentTarget.style.transform='translateX(0)';}}>
+                Open Project Page <span style={{ fontSize:13 }}>→</span>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Legend */}
+      {!showAll && (
+        <div style={{ padding:'0 48px 20px' }}>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:'8px 16px' }}>
+            {Object.entries(plan.zones).map(([k,z])=>(
+              <div key={k} style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ width:12,height:12,borderRadius:2,background:z.top,border:'1px solid rgba(0,0,0,0.1)' }}/>
+                <span style={{ fontSize:11,color:'var(--ink3)',fontFamily:'var(--mono)',letterSpacing:'0.04em' }}>{z.label.toUpperCase()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SHOW ALL grid */}
+      {showAll && (
+        <div style={{ padding:'0 48px 40px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+          {PAGE_PLANS.map((p,i)=>(
+            <div key={p.id}
+              onClick={()=>{ setPlanIdx(i); setShowAll(false); setSelected(null); }}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=p.accent}
+              onMouseLeave={e=>e.currentTarget.style.borderColor=p.accent+'40'}
+              style={{ borderRadius:12,overflow:'hidden',border:'2px solid '+p.accent+'40',cursor:'pointer',transition:'border-color 0.2s',boxShadow:'0 2px 8px rgba(0,0,0,0.06)' }}
+            >
+              <div style={{ height:260,background:p.groundColor,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',position:'relative' }}>
+                <IsoModel plan={p} onSelect={()=>{}} selected={null} mini={true}/>
+                <div style={{ position:'absolute',bottom:0,left:0,right:0,height:48,background:'linear-gradient(transparent,'+p.groundColor+')' }}/>
+              </div>
+              <div style={{ padding:'14px 18px',background:'var(--bg)',display:'flex',justifyContent:'space-between',alignItems:'center' }}>
+                <div>
+                  <div style={{ fontSize:14,fontWeight:700,color:'var(--ink)',marginBottom:2 }}>{p.name}</div>
+                  <div style={{ fontSize:11,color:'var(--ink3)',fontFamily:'var(--mono)' }}>{p.city} · {p.type}</div>
+                </div>
+                <div style={{ fontSize:12,fontWeight:600,color:p.accent }}>Explore →</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* SINGLE VIEW */}
+      {!showAll && (
+        <div style={{ position:'relative',height:'70vh',minHeight:480,borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)',overflow:'hidden',background:plan.groundColor }}>
+          <div style={{ position:'absolute',inset:0,paddingRight:selected?380:0,transition:'padding-right 0.4s cubic-bezier(0.4,0,0.2,1)',display:'flex',alignItems:'center',justifyContent:'center' }}>
+            <IsoModel onSelect={handleSelect} selected={selected ? selected.id : null} plan={plan}/>
+          </div>
+          <InfoPanel building={selected} onClose={handleClose} plan={plan}/>
+          {!selected && (
+            <div style={{ position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(26,23,20,0.75)',color:'white',padding:'8px 16px',borderRadius:20,fontSize:12,fontFamily:'var(--mono)',letterSpacing:'0.06em',whiteSpace:'nowrap',backdropFilter:'blur(8px)' }}>
+              Click a building to explore
+            </div>
+          )}
+        </div>
+      )}
+    </section>);
+}
+
+// ─── ABOUT ────────────────────────────────────────────────────────────────
+function About() {
+  const pillars = [
+  { icon: '⬡', title: 'Mixed-Income Housing', body: '850 residential units with 15% affordable, integrating diverse income levels into a vibrant urban neighborhood.' },
+  { icon: '◈', title: 'Transit-First Design', body: 'Direct DART light rail access and a multimodal hub reduce car dependency and connect the district to Greater Dallas.' },
+  { icon: '◎', title: 'Activated Public Space', body: '8 acres of parks, a cultural center, and continuous ground-floor retail create a street life that anchors community.' },
+  { icon: '◇', title: 'Sustainable Infrastructure', body: 'LEED Gold and Platinum buildings, 100% renewable energy, native landscapes, and adaptive reuse-ready structures.' }];
+
+  return (
+    <section id="about" style={{ padding: '100px 48px', background: 'var(--bg)' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'start' }}>
+              <div>
+                <div style={{
+              fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.15em',
+              color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 16
+            }}>About</div>
+                <h2 style={{
+              fontSize: 38, fontWeight: 700, letterSpacing: '-0.025em',
+              color: 'var(--ink)', lineHeight: 1.1, marginBottom: 24,
+              textWrap: 'balance'
+            }}>
+                  Redefining urban density in North Texas
+                </h2>
+                <p style={{
+              fontSize: 15, lineHeight: 1.8, color: 'var(--ink2)', marginBottom: 16,
+              textWrap: 'pretty'
+            }}>
+                  The Mixed-Use Development spans 12 acres in Dallas\'s urban core, weaving together residential, commercial, cultural, and transit programs into a walkable, sustainable district built for the next generation.
+                </p>
+                <p style={{
+              fontSize: 15, lineHeight: 1.8, color: 'var(--ink2)',
+              textWrap: 'pretty'
+            }}>
+                  Designed with community input from over 2,000 Dallas residents, every decision — from the percentage of affordable housing to the placement of the cultural plaza — reflects the priorities of the people who will call this district home.
+                </p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                {pillars.map((p) =>
+            <div key={p.title} style={{
+              padding: '24px 20px', background: 'var(--bg2)',
+              borderRadius: 10, border: '1px solid var(--border)'
+            }}>
+                    <div style={{ fontSize: 22, marginBottom: 12, color: 'var(--accent)' }}>{p.icon}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.3 }}>{p.title}</div>
+                    <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6 }}>{p.body}</div>
+                  </div>
+            )}
+              </div>
+            </div>
+
+            {/* Key Numbers */}
+            <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 1, marginTop: 80,
+          border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden',
+          background: 'var(--border)'
+        }}>
+              {[['12', 'Acres'], ['$2.1B', 'Total Investment'], ['4,200+', 'Permanent Jobs'], ['2.8M', 'Annual Visitors (Est.)']].map(([v, l]) =>
+          <div key={l} style={{ background: 'var(--bg)', padding: '32px 28px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--ink)', marginBottom: 6 }}>{v}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{l}</div>
+                </div>
+          )}
+            </div>
+          </div>
+        </section>);
+
+}
+
+// ─── TIMELINE ─────────────────────────────────────────────────────────────
+function Timeline() {
+  const [idx, setIdx] = React.useState(0);
+  const phases = [
+    { phase:'Phase 0', date:'2024-2025', label:'Planning & Entitlements', status:'Complete', desc:'Ground-level community engagement and regulatory approvals set the foundation - over 2,000 Dallas residents contributed to the vision for this district.', items:['Community engagement (2,000+ residents)','Environmental impact review','Zoning & entitlement approvals','Infrastructure design & permitting'], img:'Community engagement sessions, zoning maps, site surveys', done:true, color:'#C4C0BB' },
+    { phase:'Phase 1', date:'2025-2027', label:'Core Infrastructure', status:'In Progress', desc:'The district backbone comes to life - transit connections, residential towers, the cultural plaza, and green spaces establish the civic identity of the development.', items:['Transit hub & DART light rail integration','Residential Tower A (32 floors)','Cultural Center & Plaza','North Park & West Commons'], img:'Construction progress of transit hub, residential towers, and cultural plaza', done:false, color:'#B8D4A4' },
+    { phase:'Phase 2', date:'2027-2028', label:'Commercial Build-Out', status:'Upcoming', desc:'Office, retail, and parking infrastructure fills out the district economy, attracting top employers and creating an activated street-level experience.', items:['Office Tower A & Annex (18 + 14 floors)','Retail District & Commercial Hub','Parking Structures A & B','Residential Tower B (28 floors)'], img:'Architectural renderings of office towers, retail district, and parking structures', done:false, color:'#C8C4BC' },
+    { phase:'Phase 3', date:'2029+', label:'Activation & Completion', status:'Upcoming', desc:'The district reaches full vitality - tenants open their doors, cultural programming launches, and the green network is completed, delivering on every promise made to Dallas residents.', items:['Full tenant occupancy across all buildings','Year-round public programming launch','Green space & trail network completion','Performance hall & cultural events'], img:'Activated street scenes, cultural events, green space in full use', done:false, color:'#BECDD9' },
+  ];
+  const p = phases[idx];
+  const patId = 'tl-hatch-' + idx;
+  return (
+    <section id="timeline" style={{ background:'var(--bg2)', padding:'100px 0 0' }}>
+      {/* Header */}
+      <div style={{ padding:'0 48px 40px', maxWidth:1100, margin:'0 auto', display:'flex', alignItems:'flex-end', justifyContent:'space-between', flexWrap:'wrap', gap:20 }}>
+        <div>
+          <div style={{ fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.15em', color:'var(--ink3)', textTransform:'uppercase', marginBottom:12 }}>Timeline</div>
+          <h2 style={{ fontSize:38, fontWeight:700, letterSpacing:'-0.025em', color:'var(--ink)', lineHeight:1.1 }}>Project Phases</h2>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <button onClick={()=>setIdx(i=>Math.max(0,i-1))} disabled={idx===0} style={{ width:40,height:40,borderRadius:'50%',border:'1.5px solid var(--border)',background:idx>0?'var(--ink)':'var(--bg)',color:idx>0?'white':'var(--ink3)',cursor:idx>0?'pointer':'default',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s' }}>&#8592;</button>
+          <button onClick={()=>setIdx(i=>Math.min(phases.length-1,i+1))} disabled={idx===phases.length-1} style={{ width:40,height:40,borderRadius:'50%',border:'1.5px solid var(--border)',background:idx<phases.length-1?'var(--ink)':'var(--bg)',color:idx<phases.length-1?'white':'var(--ink3)',cursor:idx<phases.length-1?'pointer':'default',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s' }}>&#8594;</button>
+        </div>
+      </div>
+
+      {/* Progress rail */}
+      <div style={{ padding:'0 48px', maxWidth:1100, margin:'0 auto 32px' }}>
+        <div style={{ display:'flex', gap:8, marginBottom:10 }}>
+          {phases.map((_,i)=>(
+            <button key={i} onClick={()=>setIdx(i)} style={{ flex:1, height:4, borderRadius:2, background:i<=idx?'var(--accent)':'var(--border)', border:'none', cursor:'pointer', transition:'background 0.3s', padding:0 }}/>
+          ))}
+        </div>
+        <div style={{ display:'flex' }}>
+          {phases.map((ph,i)=>(
+            <button key={i} onClick={()=>setIdx(i)} style={{ flex:1, background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left' }}>
+              <span style={{ fontSize:10, fontFamily:'var(--mono)', color:i===idx?'var(--accent)':'var(--ink3)', letterSpacing:'0.08em', textTransform:'uppercase', transition:'color 0.2s' }}>{ph.phase}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Slide */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', minHeight:480, borderTop:'1px solid var(--border)' }}>
+        {/* Left — image placeholder */}
+        <div style={{ background:p.color, position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', minHeight:400 }}>
+          <svg width="100%" height="100%" style={{ position:'absolute', inset:0, opacity:0.2 }}>
+            <defs>
+              <pattern id={patId} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
+                <line x1="0" y1="0" x2="0" y2="20" stroke="white" strokeWidth="1.5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={'url(#' + patId + ')'}/>
+          </svg>
+          <div style={{ position:'relative', zIndex:1, textAlign:'center', padding:'0 40px' }}>
+            <div style={{ fontSize:100, fontWeight:700, color:'rgba(255,255,255,0.15)', lineHeight:1, letterSpacing:'-0.05em', fontFamily:'var(--mono)' }}>{idx}</div>
+            <div style={{ fontSize:11, fontFamily:'var(--mono)', color:'rgba(255,255,255,0.45)', letterSpacing:'0.1em', textTransform:'uppercase', marginTop:8 }}>Project Rendering Placeholder</div>
+            <div style={{ fontSize:12, color:'rgba(255,255,255,0.35)', marginTop:8, lineHeight:1.5 }}>{p.img}</div>
+          </div>
+          <div style={{ position:'absolute', top:24, left:24, background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', borderRadius:20, padding:'6px 14px', display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ width:6, height:6, borderRadius:'50%', background:p.done?'#4ADE80':'rgba(255,255,255,0.5)' }}/>
+            <span style={{ fontSize:11, fontFamily:'var(--mono)', color:'white', letterSpacing:'0.06em' }}>{p.status}</span>
+          </div>
+          <div style={{ position:'absolute', bottom:24, right:24, fontFamily:'var(--mono)', fontSize:12, color:'rgba(255,255,255,0.4)' }}>{idx+1} / {phases.length}</div>
+        </div>
+        {/* Right — content */}
+        <div style={{ padding:'52px 56px', background:'var(--bg)', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+            <span style={{ fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.14em', color:'var(--accent)', textTransform:'uppercase' }}>{p.phase}</span>
+            <span style={{ width:4, height:4, borderRadius:'50%', background:'var(--border)', display:'inline-block' }}/>
+            <span style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)' }}>{p.date}</span>
+          </div>
+          <h3 style={{ fontSize:30, fontWeight:700, letterSpacing:'-0.025em', color:'var(--ink)', marginBottom:16, lineHeight:1.15 }}>{p.label}</h3>
+          <p style={{ fontSize:14, lineHeight:1.75, color:'var(--ink2)', marginBottom:28, textWrap:'pretty' }}>{p.desc}</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {p.items.map((it,i)=>(
+              <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'10px 14px', background:'var(--bg2)', borderRadius:8, borderLeft:'3px solid '+(p.done?'var(--accent)':'var(--border)') }}>
+                <span style={{ color:p.done?'var(--accent)':'var(--ink3)', fontSize:14, flexShrink:0 }}>{p.done?'✓':'○'}</span>
+                <span style={{ fontSize:13, color:'var(--ink2)', lineHeight:1.5 }}>{it}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── TEAM ─────────────────────────────────────────────────────────────────
+function Team() {
+  const [hovered, setHovered] = React.useState(null);
+  const [offset, setOffset] = React.useState(0);
+  const [showAll, setShowAll] = React.useState(false);
+  const VISIBLE = 3;
+
+  const projects = [
+    { name: 'Dallas Mixed-Use', city: 'Dallas, TX', type: 'Mixed-Use Development', color: '#479db3', href: 'index.html', active: true, stats: '12 acres · $2.1B' },
+    { name: 'Assembly Park', city: 'Plano, TX', type: 'Urban Park District', color: '#00A693', href: 'assembly-park.html', active: false, stats: '10 acres · $1.3B' },
+    { name: 'Houston TOD', city: 'Houston, TX', type: 'Transit-Oriented District', color: '#4A7A3D', href: 'houston-project.html', active: false, stats: '9 acres · $1.6B' },
+    { name: 'Austin Waterfront', city: 'Austin, TX', type: 'Waterfront Development', color: '#3D5A7A', href: 'austin-project.html', active: false, stats: '11 acres · $1.9B' },
+    { name: 'San Antonio Arts', city: 'San Antonio, TX', type: 'Arts District', color: '#7A4A6B', href: 'san-antonio-project.html', active: false, stats: '8 acres · $1.4B' },
+    { name: 'Fort Worth Rail Yard', city: 'Fort Worth, TX', type: 'Industrial Adaptive Reuse', color: '#A0522D', href: 'fort-worth-project.html', active: false, stats: '18 acres · $1.1B' },
+    { name: 'Frisco Innovation Hub', city: 'Frisco, TX', type: 'Tech + Residential District', color: '#2E7D7D', href: 'frisco-project.html', active: false, stats: '7 acres · $980M' },
+    { name: 'El Paso Borderlands', city: 'El Paso, TX', type: 'Cultural Mixed-Use', color: '#8B6914', href: 'el-paso-project.html', active: false, stats: '14 acres · $750M' },
+    { name: 'Plano Legacy TOD', city: 'Plano, TX', type: 'Transit Village', color: '#5A3E7A', href: 'plano-project.html', active: false, stats: '10 acres · $1.3B' },
+  ];
+
+
+  const canPrev = offset > 0;
+  const canNext = offset + VISIBLE < projects.length;
+  const visible = showAll ? projects : projects.slice(offset, offset + VISIBLE);
+  const cols = showAll ? 'repeat(4,1fr)' : `repeat(${VISIBLE},1fr)`;
+
+  return (
+    <section id="team" style={{ padding: '100px 48px', background: 'var(--bg)' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+            {/* Header row */}
+            <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom: 40 }}>
+              <div>
+                <div style={{ fontFamily:'var(--mono)', fontSize:10, letterSpacing:'0.15em', color:'var(--ink3)', textTransform:'uppercase', marginBottom:12 }}>CASE STUDIES</div>
+                <h2 style={{ fontSize:38, fontWeight:700, letterSpacing:'-0.025em', color:'var(--ink)', lineHeight:1.1 }}>Other Developments</h2>
+              </div>
+              {/* Controls */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+                {!showAll && (<>
+                  <button onClick={()=>setOffset(o=>Math.max(0,o-1))} disabled={!canPrev} style={{
+                    width:40, height:40, borderRadius:'50%', border:'1.5px solid var(--border)',
+                    background: canPrev ? 'var(--ink)' : 'var(--bg2)',
+                    color: canPrev ? 'white' : 'var(--ink3)',
+                    cursor: canPrev ? 'pointer' : 'default',
+                    fontSize:18, display:'flex', alignItems:'center', justifyContent:'center',
+                    transition:'all 0.2s',
+                  }}>←</button>
+                  <button onClick={()=>setOffset(o=>Math.min(projects.length-VISIBLE,o+1))} disabled={!canNext} style={{
+                    width:40, height:40, borderRadius:'50%', border:'1.5px solid var(--border)',
+                    background: canNext ? 'var(--ink)' : 'var(--bg2)',
+                    color: canNext ? 'white' : 'var(--ink3)',
+                    cursor: canNext ? 'pointer' : 'default',
+                    fontSize:18, display:'flex', alignItems:'center', justifyContent:'center',
+                    transition:'all 0.2s',
+                  }}>→</button>
+                </>)}
+                <button onClick={()=>{ setShowAll(s=>!s); setOffset(0); }} style={{
+                  padding:'10px 20px', borderRadius:8,
+                  border:'1.5px solid var(--border)',
+                  background: showAll ? 'var(--ink)' : 'transparent',
+                  color: showAll ? 'white' : 'var(--ink)',
+                  fontSize:13, fontWeight:600, cursor:'pointer',
+                  fontFamily:'var(--font)', transition:'all 0.2s',
+                  whiteSpace:'nowrap',
+                }}>{showAll ? 'Collapse' : 'Show All'} ({projects.length})</button>
+              </div>
+            </div>
+
+            {/* Dot indicators */}
+            {!showAll && (
+              <div style={{ display:'flex', gap:6, marginBottom:28 }}>
+                {Array.from({length: projects.length - VISIBLE + 1}).map((_,i)=>(
+                  <button key={i} onClick={()=>setOffset(i)} style={{
+                    width: offset===i ? 20 : 8, height:8, borderRadius:4,
+                    background: offset===i ? 'var(--accent)' : 'var(--border)',
+                    border:'none', cursor:'pointer', padding:0,
+                    transition:'all 0.25s ease',
+                  }}/>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display:'grid', gridTemplateColumns: cols, gap:20 }}>
+              {visible.map((p) =>
+          <a
+            key={p.name}
+            href={p.active ? undefined : p.href}
+            onMouseEnter={() => !p.active && setHovered(p.name)}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              display: 'block', textDecoration: 'none',
+              borderRadius: 12, overflow: 'hidden',
+              border: p.active ? `2px solid ${p.color}` : '1px solid var(--border)',
+              cursor: p.active ? 'default' : 'pointer',
+              transform: hovered === p.name ? 'translateY(-4px)' : 'translateY(0)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              boxShadow: hovered === p.name ? '0 12px 32px rgba(0,0,0,0.1)' : '0 1px 4px rgba(0,0,0,0.04)'
+            }}>
+            
+                  {/* Thumbnail strip */}
+                  <div style={{
+              height: 100, background: p.color,
+              position: 'relative', overflow: 'hidden',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+                    <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.15 }}>
+                      <defs>
+                        <pattern id={`hatch-${p.name}`} x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                          <line x1="0" y1="0" x2="0" y2="16" stroke="white" strokeWidth="1.5" />
+                        </pattern>
+                      </defs>
+                      <rect width="100%" height="100%" fill={`url(#hatch-${p.name})`} />
+                    </svg>
+                    {p.active &&
+              <div style={{
+                position: 'absolute', top: 10, right: 10,
+                background: 'rgba(255,255,255,0.25)',
+                borderRadius: 20, padding: '3px 10px',
+                fontSize: 9, fontFamily: 'var(--mono)',
+                color: 'white', letterSpacing: '0.1em'
+              }}>CURRENT</div>
+              }
+                    <div style={{
+                width: 40, height: 40, borderRadius: 8,
+                background: 'rgba(255,255,255,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, color: 'white', fontWeight: 700
+              }}>◈</div>
+                  </div>
+                  {/* Card body */}
+                  <div style={{
+              padding: '20px', background: p.active ? 'white' : 'var(--bg)'
+            }}>
+                    <div style={{ fontSize: 11, color: p.color, fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>{p.type}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, lineHeight: 1.2 }}>{p.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, fontFamily: 'var(--mono)' }}>{p.city}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink2)', paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{p.stats}</span>
+                      {!p.active && <span style={{ color: p.color, fontWeight: 600 }}>View →</span>}
+                    </div>
+                  </div>
+                </a>
+          )}
+            </div>
+          </div>
+        </section>);
+
+}
+
+// ─── FOOTER ───────────────────────────────────────────────────────────────
+function Footer() {
+  return (
+    <footer id="contact" style={{
+      background: 'var(--ink)', color: 'white',
+      padding: '64px 48px',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      flexWrap: 'wrap', gap: 32
+    }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8, letterSpacing: '-0.01em' }}>
+              Mixed-Use Development
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.5, fontFamily: 'var(--mono)' }}>
+              Dallas, Texas · 2025–2029
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+            <div style={{ fontSize: 13, opacity: 0.6 }}>Inquire about this project</div>
+            <a href="mailto:info@mixedusedallas.com" style={{
+          color: 'var(--accent)', fontSize: 15, fontWeight: 600,
+          textDecoration: 'none'
+        }}>info@mixedusedallas.com</a>
+          </div>
+        </footer>);
+
+}
+
+// ─── TWEAKS PANEL ─────────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "#479db3",
+  "heroTitle": "A New Civic District for Downtown Dallas",
+  "showGridLines": true
+} /*EDITMODE-END*/;
+
+function TweaksPanel({ visible }) {
+  const [vals, setVals] = useState(TWEAK_DEFAULTS);
+  const update = (key, value) => {
+    const next = { ...vals, [key]: value };
+    setVals(next);
+    document.documentElement.style.setProperty('--accent', next.accentColor);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  };
+  if (!visible) return null;
+  return (
+    <div style={{
+      position: 'fixed', bottom: 24, right: 24, zIndex: 999,
+      background: 'white', border: '1px solid var(--border)',
+      borderRadius: 12, padding: 20, width: 260,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+    }}>
+          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16, color: 'var(--ink)' }}>Tweaks</div>
+          <label style={{ display: 'block', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Accent Color</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="color" value={vals.accentColor} onChange={(e) => update('accentColor', e.target.value)}
+          style={{ width: 32, height: 32, border: 'none', borderRadius: 4, cursor: 'pointer' }} />
+              <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{vals.accentColor}</span>
+            </div>
+          </label>
+          <label style={{ display: 'block', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Grid Lines</div>
+            <input type="checkbox" checked={vals.showGridLines}
+        onChange={(e) => update('showGridLines', e.target.checked)}
+        style={{ cursor: 'pointer' }} />
+            <span style={{ fontSize: 12, marginLeft: 8, color: 'var(--ink2)' }}>Show on model</span>
+          </label>
+        </div>);
+
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────────
+function App() {
+  const [scrollY, setScrollY] = useState(0);
+  const [tweaksVisible, setTweaksVisible] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    // Register tweaks
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweaksVisible(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksVisible(false);
+    });
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+  }, []);
+
+  return (
+    <>
+          <Nav scrollY={scrollY} />
+          <Hero />
+          <ModelSection />
+          <About />
+          <Timeline />
+          <Team />
+          <Footer />
+          <TweaksPanel visible={tweaksVisible} />
+        </>);
+
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

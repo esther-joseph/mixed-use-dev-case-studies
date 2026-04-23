@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waterfront Development — Austin, TX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F2F4F6; --bg2: #E6E9ED; --ink: #141619; --ink2: #4E545A; --ink3: #828890;
+      --accent: #3D5A7A; --accent2: #7A6B3D; --border: #D2D6DA;
+      --font: 'Space Grotesk', sans-serif; --mono: 'Space Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--font); overflow-x: hidden; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect } = React;
+  const TW=64,TH=32,FH=20,OX=0,OY=70;
+  function iso(col,row,floor){return{x:OX+(col-row)*TW/2,y:OY+(col+row)*TH/2-floor*FH};}
+  function pStr(pts){return pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');}
+
+  const ZONES={
+    residential:{top:'#BECDD9',left:'#A6B5C1',right:'#8E9DA9',label:'Residential'},
+    office:{top:'#C9BEDE',left:'#B1A6C6',right:'#998EAE',label:'Office'},
+    cultural:{top:'#BED9CE',left:'#A6C1B6',right:'#8EA99E',label:'Cultural'},
+    green:{top:'#AACF96',left:'#92B67E',right:'#7A9D66',label:'Green Space'},
+    commercial:{top:'#D9D0BE',left:'#C1B8A6',right:'#A9A08E',label:'Commercial'},
+    waterfront:{top:'#B8D4E8',left:'#A0BCCE',right:'#88A4B4',label:'Waterfront'},
+  };
+
+  const BUILDINGS=[
+    {id:'res-a',col:0,row:0,w:2,d:2,h:10,zone:'residential',label:'Residential Tower A'},
+    {id:'res-b',col:0,row:3,w:2,d:2,h:8,zone:'residential',label:'Residential Tower B'},
+    {id:'res-c',col:0,row:6,w:2,d:2,h:6,zone:'residential',label:'Residential Tower C'},
+    {id:'off-a',col:4,row:0,w:3,d:2,h:6,zone:'office',label:'Tech Office Tower'},
+    {id:'water-a',col:8,row:0,w:4,d:2,h:0.4,zone:'waterfront',label:'Waterfront Promenade'},
+    {id:'cultural',col:4,row:3,w:3,d:2,h:2,zone:'cultural',label:'Arts & Culture Center'},
+    {id:'green-a',col:8,row:3,w:3,d:2,h:0.3,zone:'green',label:'Riverside Park'},
+    {id:'com-a',col:3,row:6,w:4,d:2,h:2,zone:'commercial',label:'Retail + Dining'},
+    {id:'water-b',col:8,row:6,w:4,d:2,h:0.4,zone:'waterfront',label:'Water Feature Plaza'},
+    {id:'green-b',col:3,row:9,w:3,d:2,h:0.3,zone:'green',label:'South Lawn'},
+    {id:'off-b',col:7,row:9,w:3,d:2,h:4,zone:'office',label:'Creative Office Campus'},
+  ].sort((a,b)=>(a.col+a.row)-(b.col+b.row));
+
+  const ZONE_DATA={
+    residential:{headline:'Residential Towers',sub:'920 units across three waterfront towers',desc:'Three residential towers cascading in height toward the water\'s edge, offering panoramic Lady Bird Lake views. Unit mix skews toward 1–2 bedroom homes for young professionals and downsizers.',stats:[['920','Total Units'],['32/26/20','Floors'],['740,000','Gross Sq Ft'],['12%','Affordable']],phase:'Phase 1 · Est. Q3 2028'},
+    office:{headline:'Office Buildings',sub:'240,000 sq ft for Austin\'s tech sector',desc:'Two office buildings serve Austin\'s booming tech and creative industries, with an outdoor terrace campus, fiber-ready infrastructure, and a direct connection to the waterfront trail system.',stats:[['240,000','Total Sq Ft'],['20 / 12','Floors'],['20,000','Floor Plate SF'],['2029','Est. Occupancy']],phase:'Phase 2 · Est. Q2 2029'},
+    cultural:{headline:'Arts & Culture Center',sub:'Austin\'s new creative anchor',desc:'A flexible cultural facility designed for Austin\'s thriving arts scene: a 350-seat live music venue, gallery space, and maker studios celebrating the city\'s creative identity.',stats:[['38,000','Indoor Sq Ft'],['350','Venue Capacity'],['24','Artist Studios'],['80+','Events/Month']],phase:'Phase 1 · Est. Q1 2028'},
+    green:{headline:'Green Spaces',sub:'6 acres of lakeside parkland',desc:'Riverside Park and South Lawn connect to Austin\'s existing trail network along Lady Bird Lake, featuring native Hill Country plantings, shaded pavilions, and kayak access points.',stats:[['6 acres','Total Area'],['400','Trees Planted'],['1.2 mi','Trail Connection'],['100%','Native Plants']],phase:'Phase 1 · Est. Q3 2027'},
+    commercial:{headline:'Retail & Dining',sub:'80,000 sq ft of lakeside retail',desc:'Waterfront dining, boutique retail, and flexible market space animate the ground level. Priority leasing for Austin-based independent businesses and local food concepts.',stats:[['80,000','Total Sq Ft'],['30+','Tenants'],['60%','Local-Owned'],['$22/sf','Market Rate']],phase:'Phase 1 · Est. Q3 2028'},
+    waterfront:{headline:'Waterfront Promenade',sub:'800 linear feet of public lakefront',desc:'A continuous public promenade along Lady Bird Lake connects the development to Austin\'s broader hike-and-bike trail. Kayak launch, floating gardens, and a water feature plaza define the edge.',stats:[['800 lf','Promenade Length'],['Public','Access Always'],['4','Kayak Launches'],['2 acres','Water Features']],phase:'Phase 1 · Est. Q2 2027'},
+  };
+
+  function BuildingBlock({b,hovered,selected,onHover,onClick}){
+    const{col,row,w,d,h,zone}=b;const c=ZONES[zone];
+    const isH=hovered===b.id,isS=selected===b.id;
+    const top=[iso(col,row,h),iso(col+w,row,h),iso(col+w,row+d,h),iso(col,row+d,h)];
+    const left=[iso(col,row+d,h),iso(col+w,row+d,h),iso(col+w,row+d,0),iso(col,row+d,0)];
+    const right=[iso(col+w,row,h),iso(col+w,row+d,h),iso(col+w,row+d,0),iso(col+w,row,0)];
+    return(<g style={{cursor:'pointer',filter:(isH||isS)?'brightness(1.1)':undefined}} onClick={()=>onClick(b)} onMouseEnter={()=>onHover(b.id)} onMouseLeave={()=>onHover(null)}>
+      {h>0.5&&<polygon points={pStr(left)} fill={c.left} stroke="#EDF0F3" strokeWidth="0.5"/>}
+      {h>0.5&&<polygon points={pStr(right)} fill={c.right} stroke="#EDF0F3" strokeWidth="0.5"/>}
+      <polygon points={pStr(top)} fill={c.top} stroke="#EDF0F3" strokeWidth="0.5"/>
+      {isS&&<polygon points={pStr(top)} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round"/>}
+      {isH&&!isS&&<polygon points={pStr(top)} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeOpacity="0.5" strokeLinejoin="round"/>}
+    </g>);
+  }
+
+  function IsoModel({onSelect,selected}){
+    const[hovered,setHovered]=useState(null);
+    const gnd=[iso(0,0,0),iso(13,0,0),iso(13,12,0),iso(0,12,0)];
+    return(<svg viewBox="-420 -200 840 640" style={{width:'100%',height:'100%',display:'block'}}>
+      <polygon points={pStr(gnd)} fill="#DDE3E9"/>
+      {[2,4,6,8,10].map(r=><line key={`gr${r}`} x1={iso(0,r,0).x} y1={iso(0,r,0).y} x2={iso(13,r,0).x} y2={iso(13,r,0).y} stroke="#D2D8DE" strokeWidth="0.5" strokeDasharray="4 4"/>)}
+      {[2,4,6,8,10,12].map(c=><line key={`gc${c}`} x1={iso(c,0,0).x} y1={iso(c,0,0).y} x2={iso(c,12,0).x} y2={iso(c,12,0).y} stroke="#D2D8DE" strokeWidth="0.5" strokeDasharray="4 4"/>)}
+      {BUILDINGS.map(b=><BuildingBlock key={b.id} b={b} hovered={hovered} selected={selected} onHover={setHovered} onClick={onSelect}/>)}
+      {hovered&&(()=>{const b=BUILDINGS.find(x=>x.id===hovered);if(!b)return null;const p=iso(b.col+b.w/2,b.row+b.d/2,b.h+0.8);return(<g><rect x={p.x-60} y={p.y-14} width="120" height="24" rx="4" fill="#141619" fillOpacity="0.85"/><text x={p.x} y={p.y+2} textAnchor="middle" fill="white" fontSize="11" fontFamily="Space Grotesk" fontWeight="500">{b.label}</text></g>);})()}
+    </svg>);
+  }
+
+  function InfoPanel({building,onClose}){
+    const[tab,setTab]=useState('overview');
+    const data=building?ZONE_DATA[building.zone]:null;
+    const zone=building?ZONES[building.zone]:null;
+    return(<div style={{position:'absolute',top:0,right:0,height:'100%',width:building?'360px':'0px',transition:'width 0.4s cubic-bezier(0.4,0,0.2,1)',overflow:'hidden',background:'#FAFBFC',borderLeft:'1px solid var(--border)',display:'flex',flexDirection:'column',zIndex:10}}>
+      {building&&data&&(<>
+        <div style={{background:zone.top,padding:'28px 28px 20px',position:'relative',flexShrink:0}}>
+          <button onClick={onClose} style={{position:'absolute',top:16,right:16,background:'rgba(255,255,255,0.6)',border:'none',borderRadius:'50%',width:28,height:28,cursor:'pointer',fontSize:14}}>✕</button>
+          <div style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',color:'#141619',opacity:0.6,marginBottom:6}}>{zone.label}</div>
+          <div style={{fontSize:20,fontWeight:600,color:'#141619',lineHeight:1.2,marginBottom:6}}>{data.headline}</div>
+          <div style={{fontSize:13,color:'#141619',opacity:0.7}}>{data.sub}</div>
+        </div>
+        <div style={{display:'flex',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+          {['overview','stats'].map(t=>(<button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'12px 0',border:'none',background:'none',cursor:'pointer',fontFamily:'var(--font)',fontSize:12,fontWeight:500,color:tab===t?'var(--accent)':'var(--ink2)',borderBottom:tab===t?'2px solid var(--accent)':'2px solid transparent',transition:'all 0.2s'}}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>))}
+        </div>
+        <div style={{flex:1,overflowY:'auto',padding:'24px 28px'}}>
+          {tab==='overview'&&<div>
+            <div style={{width:'100%',aspectRatio:'16/9',background:'#D9DFE6',borderRadius:8,marginBottom:20,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
+              <svg width="100%" height="100%" style={{position:'absolute',inset:0}}><defs><pattern id={`sp-${building.id}`} x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="12" stroke="#CDD4DC" strokeWidth="1"/></pattern></defs><rect width="100%" height="100%" fill={`url(#sp-${building.id})`}/></svg>
+              <div style={{position:'relative',zIndex:1,textAlign:'center',fontFamily:'var(--mono)',fontSize:10,color:'var(--ink3)',lineHeight:1.6}}><div style={{fontSize:20,marginBottom:4,opacity:0.5}}>◻</div>Architectural Rendering<br/>{data.headline}</div>
+            </div>
+            <p style={{fontSize:14,lineHeight:1.7,color:'var(--ink2)',marginBottom:20}}>{data.desc}</p>
+            <div style={{display:'inline-flex',alignItems:'center',gap:8,background:'var(--bg2)',borderRadius:20,padding:'6px 14px',fontSize:12,fontFamily:'var(--mono)'}}>
+              <span style={{color:'var(--accent)',fontSize:8}}>●</span><span style={{color:'var(--ink2)'}}>{data.phase}</span>
+            </div>
+          </div>}
+          {tab==='stats'&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            {data.stats.map(([val,lbl])=>(<div key={lbl} style={{background:'var(--bg2)',borderRadius:8,padding:'16px 14px'}}>
+              <div style={{fontSize:22,fontWeight:700,color:'var(--ink)',letterSpacing:'-0.02em',marginBottom:4}}>{val}</div>
+              <div style={{fontSize:11,color:'var(--ink3)',fontFamily:'var(--mono)',letterSpacing:'0.06em',textTransform:'uppercase'}}>{lbl}</div>
+            </div>))}
+          </div>}
+        </div>
+      </>)}
+    </div>);
+  }
+
+  function ProjectsNav(){
+    const projects=[
+      {name:'Dallas Mixed-Use',city:'Dallas, TX',color:'#479db3',href:'index.html'},
+      {name:'Houston TOD',city:'Houston, TX',color:'#4A7A3D',href:'houston-project.html'},
+      {name:'Austin Waterfront',city:'Austin, TX',color:'#3D5A7A',href:'austin-project.html',active:true},
+      {name:'San Antonio Arts',city:'San Antonio, TX',color:'#7A4A6B',href:'san-antonio-project.html'},
+    ];
+    return(<section style={{padding:'80px 48px',background:'var(--ink)'}}>
+      <div style={{maxWidth:1100,margin:'0 auto'}}>
+        <div style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'0.15em',color:'rgba(255,255,255,0.4)',textTransform:'uppercase',marginBottom:12}}>Portfolio</div>
+        <h2 style={{fontSize:32,fontWeight:700,letterSpacing:'-0.025em',color:'white',marginBottom:40}}>Other Developments</h2>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16}}>
+          {projects.map(p=>(<a key={p.name} href={p.href} style={{display:'block',textDecoration:'none',background:p.active?p.color:'rgba(255,255,255,0.07)',borderRadius:10,padding:'28px 24px',border:p.active?`2px solid ${p.color}`:'1px solid rgba(255,255,255,0.12)',transition:'all 0.2s',cursor:p.active?'default':'pointer',position:'relative',overflow:'hidden'}}
+            onMouseEnter={e=>{if(!p.active){e.currentTarget.style.background='rgba(255,255,255,0.12)';e.currentTarget.style.borderColor='rgba(255,255,255,0.3)';}}}
+            onMouseLeave={e=>{if(!p.active){e.currentTarget.style.background='rgba(255,255,255,0.07)';e.currentTarget.style.borderColor='rgba(255,255,255,0.12)';}}}
+          >
+            {p.active&&<div style={{position:'absolute',top:12,right:12,background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'3px 10px',fontSize:10,fontFamily:'var(--mono)',color:'white',letterSpacing:'0.08em'}}>CURRENT</div>}
+            <div style={{width:36,height:36,borderRadius:6,background:p.active?'rgba(255,255,255,0.25)':p.color,marginBottom:16}}/>
+            <div style={{fontSize:15,fontWeight:600,color:'white',marginBottom:4}}>{p.name}</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.5)',fontFamily:'var(--mono)'}}>{p.city}</div>
+            {!p.active&&<div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginTop:12}}>View Project →</div>}
+          </a>))}
+        </div>
+      </div>
+    </section>);
+  }
+
+  function App(){
+    const[selected,setSelected]=useState(null);
+    const[scrollY,setScrollY]=useState(0);
+    useEffect(()=>{const f=()=>setScrollY(window.scrollY);window.addEventListener('scroll',f,{passive:true});return()=>window.removeEventListener('scroll',f);},[]);
+    return(<>
+      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 48px',height:64,background:scrollY>60?'rgba(242,244,246,0.95)':'transparent',backdropFilter:scrollY>60?'blur(12px)':'none',borderBottom:scrollY>60?'1px solid var(--border)':'none',transition:'all 0.3s'}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:28,height:28,background:'var(--accent)',borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontSize:12,fontWeight:700}}>MX</div>
+          <span style={{fontSize:14,fontWeight:600}}>Austin Waterfront Development</span>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:24}}><a href="home.html" style={{fontSize:13,color:'var(--ink2)',textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6}}><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 7 L8 2 L14 7 L14 14 L10 14 L10 9 L6 9 L6 14 L2 14 Z"/></svg>Home</a><a href="index.html" style={{fontSize:13,color:'var(--ink2)',textDecoration:'none'}}>← Dallas</a></div>
+      </nav>
+
+      <section style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',padding:'80px 48px 40px',background:'linear-gradient(180deg,#E6E9ED 0%,#F2F4F6 60%)',textAlign:'center'}}>
+        <div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'0.18em',color:'var(--accent)',textTransform:'uppercase',marginBottom:20}}>Austin, Texas · Waterfront Development</div>
+        <h1 style={{fontSize:'clamp(36px,5vw,64px)',fontWeight:700,lineHeight:1.05,letterSpacing:'-0.03em',color:'var(--ink)',maxWidth:680,marginBottom:24}}>Austin at the<br/><span style={{color:'var(--accent)'}}>Water's Edge</span></h1>
+        <p style={{fontSize:17,lineHeight:1.7,color:'var(--ink2)',maxWidth:500,marginBottom:48}}>A mixed-use waterfront district on Lady Bird Lake — 920 homes, a lakeside cultural center, and 800 linear feet of continuous public promenade.</p>
+        <a href="#model" style={{background:'var(--ink)',color:'white',padding:'14px 28px',borderRadius:8,fontSize:14,fontWeight:600,textDecoration:'none'}}>Explore Site Plan</a>
+      </section>
+
+      <section id="model" style={{background:'var(--bg)',paddingTop:60}}>
+        <div style={{padding:'0 48px 24px'}}>
+          <div style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'0.15em',color:'var(--ink3)',textTransform:'uppercase',marginBottom:12}}>Interactive Site Plan</div>
+          <h2 style={{fontSize:28,fontWeight:700,letterSpacing:'-0.025em',color:'var(--ink)',marginBottom:8}}>Explore the District</h2>
+        </div>
+        <div style={{position:'relative',height:'65vh',minHeight:460,borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)',overflow:'hidden',background:'#E8ECF0'}}>
+          <div style={{position:'absolute',inset:0,paddingRight:selected?360:0,transition:'padding-right 0.4s cubic-bezier(0.4,0,0.2,1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <IsoModel onSelect={b=>setSelected(prev=>prev?.id===b.id?null:b)} selected={selected?.id||null}/>
+          </div>
+          <InfoPanel building={selected} onClose={()=>setSelected(null)}/>
+          {!selected&&<div style={{position:'absolute',bottom:20,left:'50%',transform:'translateX(-50%)',background:'rgba(20,22,25,0.75)',color:'white',padding:'8px 16px',borderRadius:20,fontSize:12,fontFamily:'var(--mono)',backdropFilter:'blur(8px)',whiteSpace:'nowrap'}}>Click a building to explore</div>}
+        </div>
+      </section>
+
+      <section style={{padding:'60px 48px',background:'var(--bg2)'}}>
+        <div style={{maxWidth:1100,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:1,border:'1px solid var(--border)',borderRadius:10,overflow:'hidden',background:'var(--border)'}}>
+          {[['11 acres','Site Area'],['$1.9B','Total Investment'],['3,800+','Permanent Jobs'],['5M','Annual Visitors']].map(([v,l])=>(<div key={l} style={{background:'var(--bg)',padding:'28px',textAlign:'center'}}>
+            <div style={{fontSize:32,fontWeight:700,letterSpacing:'-0.03em',color:'var(--ink)',marginBottom:6}}>{v}</div>
+            <div style={{fontSize:11,color:'var(--ink3)',fontFamily:'var(--mono)',letterSpacing:'0.08em',textTransform:'uppercase'}}>{l}</div>
+          </div>))}
+        </div>
+      </section>
+
+      <ProjectsNav/>
+
+      <footer style={{background:'#0E1014',color:'white',padding:'48px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:24}}>
+        <div>
+          <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>Austin Waterfront Development</div>
+          <div style={{fontSize:12,opacity:0.4,fontFamily:'var(--mono)'}}>Austin, Texas · 2025–2029</div>
+        </div>
+        <a href="mailto:info@austinwaterfront.com" style={{color:'var(--accent)',fontSize:14,fontWeight:600,textDecoration:'none'}}>info@austinwaterfront.com</a>
+      </footer>
+    </>);
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
